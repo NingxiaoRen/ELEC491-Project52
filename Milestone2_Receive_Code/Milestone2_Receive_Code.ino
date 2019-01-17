@@ -105,11 +105,18 @@ if(pos_write != pos_read){
     temp2 |= temp1; 
     cc_byte = 0;
 
-    if(temp2 == instruction1) check_pointer ++;
+    if(temp2 == instruction1){
+      check_pointer ++;
+      check_ok = 1;
+    }else{
+      check_ok;
+    }
+  temp1 = 0;
+  temp2 = 0;
   }
-
-  
 }
+pos_read++;
+if (pos_read > SIZE - 1) pos_read = 0; 
 
 }
 
