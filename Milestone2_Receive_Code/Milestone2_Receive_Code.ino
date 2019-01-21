@@ -15,7 +15,7 @@
   *******************************************************************************/
 volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
-volatile uint8_t = temp1 = 0, temp2 = 0, cc_byte = 0, check_pointer = 0;
+volatile uint8_t  temp1 = 0, temp2 = 0, cc_byte = 0, check_pointer = 0;
 //volatile uint8_t = instruction1 = 0;
 volatile uint8_t spi_buffer[SIZE], check_buffer[3];
 
@@ -49,20 +49,19 @@ if(pos_write != pos_read){
     temp2 &= 0x0f;
     temp2 |= temp1; 
     cc_byte = 0;
-	
-	/* Check if the received data is correct. */
-	check_buffer[check_pointer] = temp2;
-	check_pointer++;
-	if(check_pointer >2)
-	{
-		check_pointer = 0;
-		if((check_buffer[0] == filter[1] ) && (check_buffer[1] == check_buffer[2]))
-			temp2 = check_buffer[0];
-		else
-			temp2 = "error"
-		Serial.println(temp2);
-	}
-	temp1 = 0;
+    /* Check if the received data is correct. */
+    check_buffer[check_pointer] = temp2;
+    check_pointer++;
+    if(check_pointer >2)
+    {
+      check_pointer = 0;
+      if((check_buffer[0] == check_buffer[1] ) && (check_buffer[1] == check_buffer[2]))
+        temp2 = check_buffer[0];
+      else
+        temp2 = "error";
+      Serial.println(temp2);
+    }
+    temp1 = 0;
     temp2 = 0;
   }
 }
