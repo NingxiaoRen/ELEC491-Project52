@@ -7,7 +7,7 @@
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
                 HIGH     LOW     Control regiter write  MISO --> TXD/INPUT
                 LOW     HIGH          Data read         MOSI <-- RXD/OUTPUT
-		        LOW      LOW          Data write        MISO --> TXD/INPUT
+                LOW      LOW          Data write        MISO --> TXD/INPUT
    CD_PD High: Not transfer;  LOW: Transfer
   *******************************************************************************/
 void setup() {
@@ -55,7 +55,7 @@ void SPI_SlaveInit(void){
 * Output         : None
 * Return         : SPDR
 *******************************************************************************/
-byte SPI_SlaveReceive(void){
+uint8_t SPI_SlaveReceive(void){
   /* Wait for reception complete */
   while(!(SPSR & (1<<SPIF)));
   /* Return Data Register */
@@ -112,7 +112,7 @@ void Modem_CtrlRead()
   /* Drive REG_DATA and RXTX high to request control register data from ST7540 */
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, HIGH);
-  byte temp1,temp2,temp3;
+  uint8_t temp1,temp2,temp3;
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();

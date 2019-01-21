@@ -1,77 +1,73 @@
 #include <SPI.h>
 
-#define LED 2
-#define RXTX  15
+#define LED      2
+#define RXTX     15
 #define REG_DATA 18
-#define CD_PD 19
-
-#define SIZE 200
+#define CD_PD    19
+#define SIZE     200
   /******************************************************************************
-     CD_PD   REG_DATA   RXTX                       MODE
-                HIGH    HIGH     Control regiter read through MOSI - RXD/OUTPUT
-                HIGH     LOW     Control regiter write through MISO - TXD/INPUT
-                LOW     HIGH          Data read through MOSI - RXD/OUTPUT
-		        LOW      LOW          Data write through MISO - TXD/INPUT
+     CD_PD   REG_DATA   RXTX            MODE                DIRECTION
+                HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
+                HIGH     LOW     Control regiter write  MISO --> TXD/INPUT
+                LOW     HIGH          Data read         MOSI <-- RXD/OUTPUT
+                LOW      LOW          Data write        MISO --> TXD/INPUT
    CD_PD High: Not transfer;  LOW: Transfer
   *******************************************************************************/
-void SPI_SlaveInit(void);
-byte SPI_SlaveReceive(void);
-void DataCorrection_Transmit (uint8_t);
-
-volatile byte buf[SIZE], check[3];
 volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
 volatile uint8_t = temp1 = 0, temp2 = 0, cc_byte = 0, check_pointer = 0;
-volatile uint8_t = instruction1 = 0;
+//volatile uint8_t = instruction1 = 0;
+volatile uint8_t spi_buffer[SIZE], check_buffer[3];
 
 void setup() {
   pinMode(LED, OUTPUT);
   Serial.begin(115200);
   SPI_SlaveInit();
-  
-  // now turn on interrupts
-  // SPI.attachInterrupt();
+  // SPI.attachInterrupt();   // now turn on interrupts
   digitalWrite(RXTX, HIGH);
   delay(100);
   digitalWrite(LED, LOW);
 }
 
 void loop() {
-
 //Modem_CtrlRead()
-
-//From the transmission, we know that we send a header byte which corresponds to the device
-
-//Check the received data 
 if(pos_write != pos_read){
-
-  if(cc_byte == 0){
-    temp1 = buf[pos_read];
+  /* Combine two bytes to one byte received data */
+  if(cc_byte == 0)
+  {
+    /* Shifting MSB four bits */
+    temp1 = spi_buffer[pos_read];
     while((temp1&0xf0)>0x10) temp1 = temp1>>1;
-    //Shift to MSB after correction the temp value
     temp1 = temp1<<4;
     cc_byte = 1;
-  }else{
-    temp2 = buf[pos_read];
+  }
+  else
+  {
+    /* Shifting LSB four bits */
+    temp2 = spi_buffer[pos_read];
     while((temp2&0xf0)>0x10) temp2=temp2>>1;
     temp2 &= 0x0f;
-    //cleared MSB, or it with the address chunk to obtain full amount of data
     temp2 |= temp1; 
     cc_byte = 0;
-
-    if(temp2 == instruction1){
-      check_pointer ++;
-      check_ok = 1;
-    }else{
-      check_ok;
-    }
-  temp1 = 0;
-  temp2 = 0;
+	
+	/* Check if the received data is correct. */
+	check_buffer[check_pointer] = temp2;
+	check_pointer++;
+	if(check_pointer >2)
+	{
+		check_pointer = 0;
+		if((check_buffer[0] == filter[1] ) && (check_buffer[1] == check_buffer[2]))
+			temp2 = check_buffer[0];
+		else
+			temp2 = "error"
+		Serial.println(temp2);
+	}
+	temp1 = 0;
+    temp2 = 0;
   }
 }
 pos_read++;
 if (pos_read > SIZE - 1) pos_read = 0; 
-
 }
 
 /*******************************************************************************
@@ -81,17 +77,9 @@ if (pos_read > SIZE - 1) pos_read = 0;
 * Output         : Print data in SPI buffer
 *******************************************************************************/
 ISR (SPI_STC_vect){
-//if (CD_PD == LOW){
-  buf[pos_write] = SPDR;
+  spi_buffer[pos_write] = SPDR;
   pos_write++;
   if(pos_write>SIZE-1) pos_write = 0;
-//}
-  if (buf[pos_write] != 0){
-    if (buf[pos_write - 1] == 0){
-      Serial.println(0);
-    }
-    Serial.println(buf[pos_write]);
-  }
 } 
 
 /*******************************************************************************
@@ -101,7 +89,7 @@ ISR (SPI_STC_vect){
 * Output         : Print data in SPI buffer
 *******************************************************************************/
 ISR (PCINT1_vect){
-  //To stop the interrupt we need to set SS ?? PB1 ??  Low, which means that there is nothing in the line
+  //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
   //To continue we need to set the SS high
   if(CD_PD == LOW){
     PORTB &= ~(1<<PB1);
@@ -138,7 +126,7 @@ void SPI_SlaveInit(void){
 * Output         : None
 * Return         : SPDR
 *******************************************************************************/
-byte SPI_SlaveReceive(void){
+uint8_t SPI_SlaveReceive(void){
   /* Wait for reception complete */
   while(!(SPSR & (1<<SPIF)));
   /* Return Data Register */
@@ -176,29 +164,8 @@ void DataCorrection_Transmit (uint8_t temp){
   /* Configure the Least Siganificant Four bits of the Byte as: 0001 LSFB */
   temp2 = (temp & 0x0f) | 0x10;
   /* Transmit each original byte 3 times for failure correction*/
-  for (i=0; i<3; i++) {
-      SPI_SlaveTransmit(temp1);
-      SPI_SlaveTransmit(temp2); 
-  }  
-}
-
-/*******************************************************************************
-* Function Name  : DataCorrection_Receive
-* Description    : Divide one byte data into two bytes by adding a header to each
-				   four bits of the data. the header will also serve as the address
-				   of each device. we can use the header for bit correction and for 
-				   ack protocols between master and slaves.
-* Input          : transmitted data
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void DataCorrection_Receive (uint8_t temp){
-  uint8_t temp1 = 0, temp2 = 0, i = 0;
-  /* Configure the Most Siganificant Four bits of the Byte as: 0001 MSFB */
-  temp1 = (temp >> 4) | 0x10;
-  /* Configure the Least Siganificant Four bits of the Byte as: 0001 LSFB */
-  temp2 = (temp & 0x0f) | 0x10;
-  /* Transmit each original byte 3 times for failure correction*/
+  digitalWrite(REG_DATA, LOW);
+  digitalWrite(RXTX, LOW);
   for (i=0; i<3; i++) {
       SPI_SlaveTransmit(temp1);
       SPI_SlaveTransmit(temp2); 
@@ -216,7 +183,7 @@ void Modem_CtrlRead()
   /* Drive REG_DATA and RXTX high to request control register data from ST7540 */
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, HIGH);
-  byte temp1,temp2,temp3;
+  uint8_t temp1,temp2,temp3;
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
