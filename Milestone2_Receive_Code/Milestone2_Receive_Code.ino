@@ -28,14 +28,19 @@ void setup() {
   digitalWrite(SS_CTRL, LOW);
   // SPI.attachInterrupt();   // now turn on interrupts
   digitalWrite(RXTX, HIGH);
-  delay(100);
-  digitalWrite(LED, LOW);
+  //delay(100);
+  //digitalWrite(LED, LOW);
 }
 
 void loop() {
-//Modem_CtrlRead();
-//delay(1000);
-digitalWrite(SS_CTRL,HIGH );
+	digitalWrite(SS_CTRL, LOW);
+	Modem_CtrlWrite();
+	digitalWrite(SS_CTRL,HIGH );
+
+	digitalWrite(SS_CTRL, LOW);
+	Modem_CtrlRead();
+	digitalWrite(SS_CTRL,HIGH );
+/*
 if(pos_write != pos_read){
   // Combine two bytes to one byte received data 
   if(cc_byte == 0)
@@ -71,7 +76,7 @@ if(pos_write != pos_read){
   }
 }
 pos_read++;
-if (pos_read > SIZE - 1) pos_read = 0; 
+if (pos_read > SIZE - 1) pos_read = 0; */
 }
 
 /*******************************************************************************
@@ -190,10 +195,22 @@ void Modem_CtrlRead()
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, HIGH);
   uint8_t temp1,temp2,temp3;
+  uint16_t correction;
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
-  Serial.println(temp1,BIN);
-  Serial.println(temp2,BIN);
-  Serial.println(temp3,BIN);
+  correction = ((temp1 & 0xFF00)| (temp2 & 0x00FF)) << 1;
+  Serial.println(correction >> 8,HEX);
+  correction = ((temp2 & 0xFF00)| (temp3 & 0x00FF)) << 1;
+  Serial.println(correction >> 8,HEX);
+  correction = ((temp3 & 0xFF00)| (temp1 & 0x00FF)) << 1;
+  Serial.println(correction >> 8,HEX);
+}
+
+void Modem_CtrlWrite(void){
+  digitalWrite(REG_DATA, HIGH);
+  digitalWrite(RXTX, LOW);
+  SPI_SlaveTransmit(0x13);
+  SPI_SlaveTransmit(0xB2);
+  SPI_SlaveTransmit(0x32);
 }

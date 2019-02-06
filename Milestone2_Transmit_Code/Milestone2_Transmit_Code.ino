@@ -21,12 +21,17 @@ void setup() {
 }
  
 void loop() {
-  //Modem_CtrlRead();
+	digitalWrite(SS_CTRL, LOW);
+	Modem_CtrlWrite();
+	digitalWrite(SS_CTRL,HIGH );
+
+	digitalWrite(SS_CTRL, LOW);
+	Modem_CtrlRead();
+	digitalWrite(SS_CTRL,HIGH );
   //if (digitalRead(CD_PD)==HIGH) // When the lines are not busy
   //{    
     //Serial.println("Data transmission.");
     digitalWrite(SS_CTRL,LOW);
-    //delay(1000);
     DataCorrection_Transmit(0x15);
     digitalWrite(SS_CTRL,HIGH);
     delay(1000);
@@ -122,10 +127,22 @@ void Modem_CtrlRead()
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, HIGH);
   uint8_t temp1,temp2,temp3;
+  uint16_t correction;
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
-  Serial.println(temp1,BIN);
-  Serial.println(temp2,BIN);
-  Serial.println(temp3,BIN);
+  correction = ((temp1 & 0xFF00)| (temp2 & 0x00FF)) << 1;
+  Serial.println(correction >> 8,HEX);
+  correction = ((temp2 & 0xFF00)| (temp3 & 0x00FF)) << 1;
+  Serial.println(correction >> 8,HEX);
+  correction = ((temp3 & 0xFF00)| (temp1 & 0x00FF)) << 1;
+  Serial.println(correction >> 8,HEX);
+}
+
+void Modem_CtrlWrite(void){
+  digitalWrite(REG_DATA, HIGH);
+  digitalWrite(RXTX, LOW);
+  SPI_SlaveTransmit(0x13);
+  SPI_SlaveTransmit(0xB2);
+  SPI_SlaveTransmit(0x32);
 }
