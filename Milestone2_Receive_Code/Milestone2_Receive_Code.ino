@@ -4,7 +4,9 @@
 #define RXTX     15
 #define REG_DATA 18
 #define CD_PD    19
+#define SS_CTRL  9
 #define SIZE     200
+
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -23,6 +25,7 @@ void setup() {
   pinMode(LED, OUTPUT);
   Serial.begin(115200);
   SPI_SlaveInit();
+  digitalWrite(SS_CTRL, LOW);
   // SPI.attachInterrupt();   // now turn on interrupts
   digitalWrite(RXTX, HIGH);
   delay(100);
@@ -30,12 +33,14 @@ void setup() {
 }
 
 void loop() {
-//Modem_CtrlRead()
+//Modem_CtrlRead();
+//delay(1000);
+digitalWrite(SS_CTRL,HIGH );
 if(pos_write != pos_read){
-  /* Combine two bytes to one byte received data */
+  // Combine two bytes to one byte received data 
   if(cc_byte == 0)
   {
-    /* Shifting MSB four bits */
+    // Shifting MSB four bits 
     temp1 = spi_buffer[pos_read];
     while((temp1&0xf0)>0x10) temp1 = temp1>>1;
     temp1 = temp1<<4;
@@ -43,13 +48,13 @@ if(pos_write != pos_read){
   }
   else
   {
-    /* Shifting LSB four bits */
+    // Shifting LSB four bits 
     temp2 = spi_buffer[pos_read];
     while((temp2&0xf0)>0x10) temp2=temp2>>1;
     temp2 &= 0x0f;
     temp2 |= temp1; 
     cc_byte = 0;
-    /* Check if the received data is correct. */
+    // Check if the received data is correct. 
     check_buffer[check_pointer] = temp2;
     check_pointer++;
     if(check_pointer >2)
@@ -110,6 +115,7 @@ void SPI_SlaveInit(void){
   pinMode(SS,INPUT);    // PB2 --- ST7540_CLR/T
   pinMode(MOSI,INPUT);  // PB3 --- ST7540_RXD/OUTPUT
   pinMode(MISO,OUTPUT); // PB4 --- ST7540_TXD/INPUT
+  pinMode(SS_CTRL,OUTPUT);
   /* Configure pins for ST7540 */
   pinMode(RXTX, OUTPUT);
   pinMode(REG_DATA, OUTPUT);
@@ -169,6 +175,7 @@ void DataCorrection_Transmit (uint8_t temp){
       SPI_SlaveTransmit(temp1);
       SPI_SlaveTransmit(temp2); 
   }  
+  digitalWrite(RXTX,HIGH);
 }
 
 /*******************************************************************************

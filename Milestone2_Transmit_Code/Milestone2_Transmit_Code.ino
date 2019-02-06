@@ -2,6 +2,7 @@
 #define RXTX     15
 #define REG_DATA 18
 #define CD_PD    19
+#define SS_CTRL  9
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -15,16 +16,21 @@ void setup() {
   //digitalWrite(LED, HIGH);
   Serial.begin(115200);
   SPI_SlaveInit();
+  digitalWrite(SS_CTRL,LOW);
   delay(100);
 }
  
 void loop() {
-  // Modem_CtrlRead()
-  if (digitalRead(CD_PD)==HIGH) // When the lines are not busy
-  {    
-    Serial.println("Data transmission.");
+  //Modem_CtrlRead();
+  //if (digitalRead(CD_PD)==HIGH) // When the lines are not busy
+  //{    
+    //Serial.println("Data transmission.");
+    digitalWrite(SS_CTRL,LOW);
+    //delay(1000);
     DataCorrection_Transmit(0x15);
-  }
+    digitalWrite(SS_CTRL,HIGH);
+    delay(1000);
+  //}
 }
 
 /*******************************************************************************
@@ -40,6 +46,7 @@ void SPI_SlaveInit(void){
   pinMode(SS,INPUT);    // PB2 --- ST7540_CLR/T
   pinMode(MOSI,INPUT);  // PB3 --- ST7540_RXD
   pinMode(MISO,OUTPUT); // PB4 --- ST7540_TXD
+  pinMode(SS_CTRL,OUTPUT); 
   /* Configure pins for ST7540 */
   pinMode(RXTX, OUTPUT);
   pinMode(REG_DATA, OUTPUT);
@@ -99,6 +106,8 @@ void DataCorrection_Transmit (uint8_t temp){
       SPI_SlaveTransmit(temp1);
       SPI_SlaveTransmit(temp2); 
   }  
+  //delay(200);
+  digitalWrite(RXTX, HIGH);
 }
 
 /*******************************************************************************
