@@ -3,6 +3,8 @@
 #define REG_DATA 18
 #define CD_PD    19
 #define SS_CTRL  9
+
+uint8_t i = 0;
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -17,25 +19,24 @@ void setup() {
   Serial.begin(115200);
   SPI_SlaveInit();
   digitalWrite(SS_CTRL,LOW);
-  delay(100);
 }
  
 void loop() {
-	digitalWrite(SS_CTRL, LOW);
-	Modem_CtrlWrite();
-	digitalWrite(SS_CTRL,HIGH );
+  while(i < 2)
+  {
+    Modem_CtrlWrite();
+    Modem_CtrlRead();
+    i++;
+  } 
 
-	digitalWrite(SS_CTRL, LOW);
-	Modem_CtrlRead();
-	digitalWrite(SS_CTRL,HIGH );
   //if (digitalRead(CD_PD)==HIGH) // When the lines are not busy
   //{    
     //Serial.println("Data transmission.");
-    digitalWrite(SS_CTRL,LOW);
-    DataCorrection_Transmit(0x15);
-    digitalWrite(SS_CTRL,HIGH);
+    //digitalWrite(SS_CTRL,LOW);
+    DataCorrection_Transmit(0xAB);
+    //digitalWrite(SS_CTRL,HIGH);
     delay(1000);
-  //}
+  //}*/
 }
 
 /*******************************************************************************
@@ -47,8 +48,8 @@ void loop() {
 *******************************************************************************/
 void SPI_SlaveInit(void){
   /* Configure Arduino as a slave, Set MISO output, all other input */
-  pinMode(SCK,INPUT);   // PB5 --- GND
-  pinMode(SS,INPUT);    // PB2 --- ST7540_CLR/T
+  pinMode(SCK,INPUT);   // PB5 --- ST7540_CLR/T
+  pinMode(SS,INPUT);    // PB2 --- GND
   pinMode(MOSI,INPUT);  // PB3 --- ST7540_RXD
   pinMode(MISO,OUTPUT); // PB4 --- ST7540_TXD
   pinMode(SS_CTRL,OUTPUT); 
@@ -126,17 +127,37 @@ void Modem_CtrlRead()
   /* Drive REG_DATA and RXTX high to request control register data from ST7540 */
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, HIGH);
-  uint8_t temp1,temp2,temp3;
-  uint16_t correction;
+  uint8_t temp1,temp2,temp3, temp4;
+  uint32_t correction1 = 0;
+  uint32_t correction2 = 0;
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
-  correction = ((temp1 & 0xFF00)| (temp2 & 0x00FF)) << 1;
+  temp4 = SPI_SlaveReceive();
+  correction1 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
+  temp1 = SPI_SlaveReceive();
+  temp2 = SPI_SlaveReceive();
+  temp3 = SPI_SlaveReceive();
+  temp4 = SPI_SlaveReceive();
+  correction2 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
+  //while(correction1 != correction2)
+  Serial.println("C 1");
+  Serial.println(correction1,BIN);
+  Serial.println("C 2");
+  Serial.println(correction2,BIN);
+  //Serial.println("byte 3");
+  //Serial.println(temp3,BIN);
+  /*correction = (((temp1| correction)<<8)| (temp2 & 0x00FF)) << 1;
   Serial.println(correction >> 8,HEX);
-  correction = ((temp2 & 0xFF00)| (temp3 & 0x00FF)) << 1;
+  //Serial.println(temp1,BIN);
+  correction = 0;
+  correction = (((temp2| correction)<<8)| (temp3 & 0x00FF)) << 1;
   Serial.println(correction >> 8,HEX);
-  correction = ((temp3 & 0xFF00)| (temp1 & 0x00FF)) << 1;
+  //Serial.println(temp2,BIN);
+  correction = 0;
+  correction = (((temp3| correction)<<8)| (temp1 & 0x00FF)) << 1;
   Serial.println(correction >> 8,HEX);
+  //Serial.println(temp3,BIN);*/
 }
 
 void Modem_CtrlWrite(void){

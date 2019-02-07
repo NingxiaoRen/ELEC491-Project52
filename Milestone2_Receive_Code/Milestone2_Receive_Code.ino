@@ -31,15 +31,14 @@ void setup() {
   //delay(100);
   //digitalWrite(LED, LOW);
 }
-
+uint8_t i = 0;
 void loop() {
-	digitalWrite(SS_CTRL, LOW);
-	Modem_CtrlWrite();
-	digitalWrite(SS_CTRL,HIGH );
-
-	digitalWrite(SS_CTRL, LOW);
-	Modem_CtrlRead();
-	digitalWrite(SS_CTRL,HIGH );
+   while(i < 2)
+  {
+    Modem_CtrlWrite();
+    Modem_CtrlRead();
+    i++;
+  } 
 /*
 if(pos_write != pos_read){
   // Combine two bytes to one byte received data 
@@ -116,8 +115,8 @@ ISR (PCINT1_vect){
 *******************************************************************************/
 void SPI_SlaveInit(void){
   /* Configure Arduino as a slave, Set MISO output, all other input */
-  pinMode(SCK,INPUT);   // PB5 --- GND
-  pinMode(SS,INPUT);    // PB2 --- ST7540_CLR/T
+  pinMode(SCK,INPUT);   // PB5 --- ST7540_CLR/T
+  pinMode(SS,INPUT);    // PB2 --- GND
   pinMode(MOSI,INPUT);  // PB3 --- ST7540_RXD/OUTPUT
   pinMode(MISO,OUTPUT); // PB4 --- ST7540_TXD/INPUT
   pinMode(SS_CTRL,OUTPUT);
@@ -194,17 +193,24 @@ void Modem_CtrlRead()
   /* Drive REG_DATA and RXTX high to request control register data from ST7540 */
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, HIGH);
-  uint8_t temp1,temp2,temp3;
-  uint16_t correction;
+  uint8_t temp1,temp2,temp3, temp4;
+  uint32_t correction1 = 0;
+  uint32_t correction2 = 0;
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
-  correction = ((temp1 & 0xFF00)| (temp2 & 0x00FF)) << 1;
-  Serial.println(correction >> 8,HEX);
-  correction = ((temp2 & 0xFF00)| (temp3 & 0x00FF)) << 1;
-  Serial.println(correction >> 8,HEX);
-  correction = ((temp3 & 0xFF00)| (temp1 & 0x00FF)) << 1;
-  Serial.println(correction >> 8,HEX);
+  temp4 = SPI_SlaveReceive();
+  correction1 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
+  temp1 = SPI_SlaveReceive();
+  temp2 = SPI_SlaveReceive();
+  temp3 = SPI_SlaveReceive();
+  temp4 = SPI_SlaveReceive();
+  correction2 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
+  //while(correction1 != correction2)
+  Serial.println("C 1");
+  Serial.println(correction1,BIN);
+  Serial.println("C 2");
+  Serial.println(correction2,BIN);
 }
 
 void Modem_CtrlWrite(void){
