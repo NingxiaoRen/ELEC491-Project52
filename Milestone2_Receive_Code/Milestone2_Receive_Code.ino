@@ -30,6 +30,7 @@ void setup() {
   digitalWrite(RXTX, HIGH);
   //delay(100);
   //digitalWrite(LED, LOW);
+  sei();
 }
 uint8_t i = 0;
 void loop() {
@@ -39,7 +40,11 @@ void loop() {
     Modem_CtrlRead();
     i++;
   } 
-/*
+
+  digitalWrite(REG_DATA, LOW);
+  digitalWrite(RXTX, HIGH);
+  delay(5);
+
 if(pos_write != pos_read){
   // Combine two bytes to one byte received data 
   if(cc_byte == 0)
@@ -75,7 +80,7 @@ if(pos_write != pos_read){
   }
 }
 pos_read++;
-if (pos_read > SIZE - 1) pos_read = 0; */
+if (pos_read > SIZE - 1) pos_read = 0;
 }
 
 /*******************************************************************************
@@ -100,9 +105,9 @@ ISR (PCINT1_vect){
   //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
   //To continue we need to set the SS high
   if(CD_PD == LOW){
-    PORTB &= ~(1<<PB1);
+    digitalWrite(SS_CTRL,LOW);
   }else{
-    PORTB |= (1<<PB1);
+    digitalWrite(SS_CTRL,HIGH);
   }
 }
 
@@ -196,6 +201,7 @@ void Modem_CtrlRead()
   uint8_t temp1,temp2,temp3, temp4;
   uint32_t correction1 = 0;
   uint32_t correction2 = 0;
+  digitalWrite(SS_CTRL,LOW);
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
@@ -207,6 +213,7 @@ void Modem_CtrlRead()
   temp4 = SPI_SlaveReceive();
   correction2 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
   //while(correction1 != correction2)
+  digitalWrite(SS_CTRL,HIGH);
   Serial.println("C 1");
   Serial.println(correction1,BIN);
   Serial.println("C 2");
@@ -216,7 +223,9 @@ void Modem_CtrlRead()
 void Modem_CtrlWrite(void){
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, LOW);
+  digitalWrite(SS_CTRL,LOW);
   SPI_SlaveTransmit(0x13);
   SPI_SlaveTransmit(0xB2);
   SPI_SlaveTransmit(0x32);
+  digitalWrite(SS_CTRL,HIGH);
 }
