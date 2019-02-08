@@ -5,7 +5,7 @@
 #define REG_DATA 18
 #define CD_PD    19
 #define SS_CTRL  9
-#define SIZE     200
+#define SIZE     50
 
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
@@ -33,7 +33,10 @@ void setup() {
   //digitalWrite(LED, LOW);
   //PCICR = (1<<PCIE1);
   //PCMSK1 = (1<<PCINT13);
-  //sei();
+  //PCIFR = 0x00;
+  PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
+  PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
+  sei();    // turn on interrupts
 }
 
 void loop() {
@@ -47,7 +50,7 @@ void loop() {
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, HIGH);
   delay(5);
-  digitalWrite(SS_CTRL,LOW);
+  //digitalWrite(SS_CTRL,LOW);
 if(pos_write != pos_read){
   // Combine two bytes to one byte received data 
   if(cc_byte == 0)
@@ -75,7 +78,7 @@ if(pos_write != pos_read){
       if((check_buffer[0] == check_buffer[1] ) && (check_buffer[1] == check_buffer[2]))
         temp2 = check_buffer[0];
       else
-        temp2 = "error";
+        temp2 = 0xE;
       Serial.println(temp2,HEX);
     }
     temp1 = 0;
@@ -106,15 +109,17 @@ ISR (SPI_STC_vect){
 * Input          : SPI transfer complete
 * Output         : Print data in SPI buffer
 *******************************************************************************/
-/*ISR (PCINT0_vect){
+ISR (PCINT0_vect){
   //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
   //To continue we need to set the SS high
-  if(CD_PD == LOW){
-    digitalWrite(SS_CTRL,LOW);
-  }else{
+  if(PINB & (1<<PB0)){//rising
+    //Serial.println("CD_PD Rising");
     digitalWrite(SS_CTRL,HIGH);
+  }else{//falling
+    //Serial.println("CD_PD Falling");
+    digitalWrite(SS_CTRL,LOW);
   }
-}*/
+}
 
 /*******************************************************************************
 * Function Name  : SPI_SlaveInit

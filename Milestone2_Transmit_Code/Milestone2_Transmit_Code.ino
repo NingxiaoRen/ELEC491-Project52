@@ -33,7 +33,14 @@ void loop() {
   //{    
     //Serial.println("Data transmission.");
     //digitalWrite(SS_CTRL,LOW);
+    DataCorrection_Transmit(0x12);
+    DataCorrection_Transmit(0x34);
+    DataCorrection_Transmit(0x56);
+    DataCorrection_Transmit(0x78);
+    DataCorrection_Transmit(0x90);
     DataCorrection_Transmit(0xAB);
+    DataCorrection_Transmit(0xCD);
+    DataCorrection_Transmit(0xEF);
     //digitalWrite(SS_CTRL,HIGH);
     delay(1000);
   //}*/
