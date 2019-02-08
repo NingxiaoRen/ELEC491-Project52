@@ -20,31 +20,34 @@ volatile uint16_t pos_read = 0;
 volatile uint8_t  temp1 = 0, temp2 = 0, cc_byte = 0, check_pointer = 0;
 //volatile uint8_t = instruction1 = 0;
 volatile uint8_t spi_buffer[SIZE], check_buffer[3];
+volatile uint8_t i = 0;
 
 void setup() {
   pinMode(LED, OUTPUT);
   Serial.begin(115200);
   SPI_SlaveInit();
   digitalWrite(SS_CTRL, LOW);
-  // SPI.attachInterrupt();   // now turn on interrupts
-  digitalWrite(RXTX, HIGH);
+  //SPI.attachInterrupt();   // now turn on interrupts
+  //digitalWrite(RXTX, HIGH);
   //delay(100);
   //digitalWrite(LED, LOW);
-  sei();
+  //PCICR = (1<<PCIE1);
+  //PCMSK1 = (1<<PCINT13);
+  //sei();
 }
-uint8_t i = 0;
+
 void loop() {
-   while(i < 2)
+  /* while(i < 2)
   {
     Modem_CtrlWrite();
     Modem_CtrlRead();
     i++;
-  } 
+  }*/
 
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, HIGH);
   delay(5);
-
+  digitalWrite(SS_CTRL,LOW);
 if(pos_write != pos_read){
   // Combine two bytes to one byte received data 
   if(cc_byte == 0)
@@ -73,7 +76,7 @@ if(pos_write != pos_read){
         temp2 = check_buffer[0];
       else
         temp2 = "error";
-      Serial.println(temp2);
+      Serial.println(temp2,HEX);
     }
     temp1 = 0;
     temp2 = 0;
@@ -90,7 +93,9 @@ if (pos_read > SIZE - 1) pos_read = 0;
 * Output         : Print data in SPI buffer
 *******************************************************************************/
 ISR (SPI_STC_vect){
+  //byte c = SPDR;
   spi_buffer[pos_write] = SPDR;
+  //Serial.println(spi_buffer[pos_write],HEX);
   pos_write++;
   if(pos_write>SIZE-1) pos_write = 0;
 } 
@@ -101,7 +106,7 @@ ISR (SPI_STC_vect){
 * Input          : SPI transfer complete
 * Output         : Print data in SPI buffer
 *******************************************************************************/
-ISR (PCINT1_vect){
+/*ISR (PCINT0_vect){
   //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
   //To continue we need to set the SS high
   if(CD_PD == LOW){
@@ -109,7 +114,7 @@ ISR (PCINT1_vect){
   }else{
     digitalWrite(SS_CTRL,HIGH);
   }
-}
+}*/
 
 /*******************************************************************************
 * Function Name  : SPI_SlaveInit
@@ -131,6 +136,9 @@ void SPI_SlaveInit(void){
   pinMode(CD_PD, INPUT);
   /* Enable SPI */
   SPCR = (1<<SPE)|(0<<MSTR);
+  Modem_CtrlWrite();
+  Modem_CtrlRead();
+  SPCR |= (1<<SPIE);
 }
 
 /*******************************************************************************
