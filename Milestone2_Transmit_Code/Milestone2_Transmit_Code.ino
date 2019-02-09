@@ -3,8 +3,11 @@
 #define REG_DATA 18
 #define CD_PD    19
 #define SS_CTRL  9
+#define BUTTON   2
 
 uint8_t i = 0;
+volatile int button = 0;
+volatile int light_flag = 0;
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -15,6 +18,8 @@ uint8_t i = 0;
   *******************************************************************************/
 void setup() {
   pinMode(LED, OUTPUT);
+  pinMode(BUTTON,INPUT);
+  attachInterrupt(0, pin_ISR, RISING);
   //digitalWrite(LED, HIGH);
   Serial.begin(115200);
   SPI_SlaveInit();
@@ -22,27 +27,22 @@ void setup() {
 }
  
 void loop() {
-  while(i < 2)
-  {
-    Modem_CtrlWrite();
-    Modem_CtrlRead();
-    i++;
-  } 
-
+ 
+  
   //if (digitalRead(CD_PD)==HIGH) // When the lines are not busy
   //{    
     //Serial.println("Data transmission.");
     //digitalWrite(SS_CTRL,LOW);
-    DataCorrection_Transmit(0x12);
-    DataCorrection_Transmit(0x34);
-    DataCorrection_Transmit(0x56);
-    DataCorrection_Transmit(0x78);
-    DataCorrection_Transmit(0x90);
-    DataCorrection_Transmit(0xAB);
-    DataCorrection_Transmit(0xCD);
-    DataCorrection_Transmit(0xEF);
+//    DataCorrection_Transmit(0x12);
+//    DataCorrection_Transmit(0x34);
+//    DataCorrection_Transmit(0x56);
+//    DataCorrection_Transmit(0x78);
+//    DataCorrection_Transmit(0x90);
+//    DataCorrection_Transmit(0xAB);
+//    DataCorrection_Transmit(0xCD);
+//    DataCorrection_Transmit(0xEF);
     //digitalWrite(SS_CTRL,HIGH);
-    delay(1000);
+    //delay(1000);
   //}*/
 }
 
@@ -66,6 +66,8 @@ void SPI_SlaveInit(void){
   pinMode(CD_PD, INPUT);
   /* Enable SPI */
   SPCR = (1<<SPE)|(0<<MSTR);
+  Modem_CtrlWrite();
+  Modem_CtrlRead();
 }
 
 /*******************************************************************************
@@ -173,4 +175,15 @@ void Modem_CtrlWrite(void){
   SPI_SlaveTransmit(0x13);
   SPI_SlaveTransmit(0xB2);
   SPI_SlaveTransmit(0x32);
+}
+
+void pin_ISR(){
+  button = digitalRead(BUTTON);
+  if ((button == HIGH) & (light_flag == 0)){
+    DataCorrection_Transmit(0xAC);
+    light_flag = 1;
+  }else{
+    DataCorrection_Transmit(0xAD);
+    light_flag = 0;
+  }
 }

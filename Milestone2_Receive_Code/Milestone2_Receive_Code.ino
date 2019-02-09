@@ -24,6 +24,7 @@ volatile uint8_t i = 0;
 
 void setup() {
   pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
   Serial.begin(115200);
   SPI_SlaveInit();
   digitalWrite(SS_CTRL, LOW);
@@ -51,42 +52,49 @@ void loop() {
   digitalWrite(RXTX, HIGH);
   delay(5);
   //digitalWrite(SS_CTRL,LOW);
-if(pos_write != pos_read){
-  // Combine two bytes to one byte received data 
-  if(cc_byte == 0)
-  {
-    // Shifting MSB four bits 
-    temp1 = spi_buffer[pos_read];
-    while((temp1&0xf0)>0x10) temp1 = temp1>>1;
-    temp1 = temp1<<4;
-    cc_byte = 1;
-  }
-  else
-  {
-    // Shifting LSB four bits 
-    temp2 = spi_buffer[pos_read];
-    while((temp2&0xf0)>0x10) temp2=temp2>>1;
-    temp2 &= 0x0f;
-    temp2 |= temp1; 
-    cc_byte = 0;
-    // Check if the received data is correct. 
-    check_buffer[check_pointer] = temp2;
-    check_pointer++;
-    if(check_pointer >2)
+  if(pos_write != pos_read){
+    // Combine two bytes to one byte received data 
+    if(cc_byte == 0)
     {
-      check_pointer = 0;
-      if((check_buffer[0] == check_buffer[1] ) && (check_buffer[1] == check_buffer[2]))
-        temp2 = check_buffer[0];
-      else
-        temp2 = 0xE;
-      Serial.println(temp2,HEX);
+      // Shifting MSB four bits 
+      temp1 = spi_buffer[pos_read];
+      spi_buffer[pos_read]=0;
+      while((temp1&0xf0)>0x10) temp1 = temp1>>1;
+      if ((temp1&0xf0) == 0x10) {cc_byte = 1;
+      }else{ cc_byte = 0;}
+      temp1 = temp1<<4;
+      //cc_byte = 1;
     }
-    temp1 = 0;
-    temp2 = 0;
+    else
+    {
+      // Shifting LSB four bits 
+      temp2 = spi_buffer[pos_read];
+      spi_buffer[pos_read]=0x00;
+      while((temp2&0xf0)>0x10) temp2=temp2>>1;
+      temp2 &= 0x0f;
+      temp2 |= temp1; 
+      cc_byte = 0;
+      // Check if the received data is correct. 
+      check_buffer[check_pointer] = temp2;
+      check_pointer++;
+      if(check_pointer >2)
+      {
+        check_pointer = 0;
+        if((check_buffer[0] == check_buffer[1] ) && (check_buffer[1] == check_buffer[2]))
+         
+          {temp2 = check_buffer[0];
+          command_library(temp2);    
+          }else
+          temp2 = 0xE;
+        Serial.println(temp2,HEX);
+        //Serial.println(temp1,HEX);
+      }
+      temp1 = 0;
+      temp2 = 0;
+    }
+     pos_read++;
+     if (pos_read > SIZE - 1) pos_read = 0;
   }
-}
-pos_read++;
-if (pos_read > SIZE - 1) pos_read = 0;
 }
 
 /*******************************************************************************
@@ -241,4 +249,17 @@ void Modem_CtrlWrite(void){
   SPI_SlaveTransmit(0xB2);
   SPI_SlaveTransmit(0x32);
   digitalWrite(SS_CTRL,HIGH);
+}
+
+void command_library(uint8_t command){
+  switch(command){
+    case 0xAC:
+      digitalWrite(LED,HIGH);
+      break;
+    case 0xAD:
+      digitalWrite(LED,LOW);
+      break;
+    default:
+      break;
+  }
 }
