@@ -1,13 +1,17 @@
-#define LED      2
+#define BUTTON1  2
+#define BUTTON2  3
+#define SS_CTRL  9
 #define RXTX     15
 #define REG_DATA 18
 #define CD_PD    19
-#define SS_CTRL  9
-#define BUTTON   2
+
+
 
 uint8_t i = 0;
-volatile int button = 0;
-volatile int light_flag = 0;
+volatile int button1 = 0;
+volatile int light1_flag = 0;
+volatile int button2 = 0;
+volatile int light2_flag = 0;
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -17,33 +21,24 @@ volatile int light_flag = 0;
    CD_PD High: Not transfer;  LOW: Transfer
   *******************************************************************************/
 void setup() {
-  pinMode(LED, OUTPUT);
-  pinMode(BUTTON,INPUT);
-  attachInterrupt(0, pin_ISR, RISING);
-  //digitalWrite(LED, HIGH);
+  pinMode(BUTTON1,INPUT);
+  pinMode(BUTTON2,INPUT);
+  attachInterrupt(0, pin_ISR1, RISING);
+  attachInterrupt(1, pin_ISR2, RISING);
   Serial.begin(115200);
   SPI_SlaveInit();
   digitalWrite(SS_CTRL,LOW);
 }
  
 void loop() {
- 
-  
-  //if (digitalRead(CD_PD)==HIGH) // When the lines are not busy
-  //{    
-    //Serial.println("Data transmission.");
-    //digitalWrite(SS_CTRL,LOW);
-//    DataCorrection_Transmit(0x12);
-//    DataCorrection_Transmit(0x34);
-//    DataCorrection_Transmit(0x56);
-//    DataCorrection_Transmit(0x78);
-//    DataCorrection_Transmit(0x90);
-//    DataCorrection_Transmit(0xAB);
-//    DataCorrection_Transmit(0xCD);
-//    DataCorrection_Transmit(0xEF);
-    //digitalWrite(SS_CTRL,HIGH);
-    //delay(1000);
-  //}*/
+    DataCorrection_Transmit(0x20, 0xAC);
+    delay(1000);
+    DataCorrection_Transmit(0x30, 0xAC);
+    delay(1000);
+    DataCorrection_Transmit(0x20, 0xAD);
+    delay(1000);
+    DataCorrection_Transmit(0x30, 0xAD);
+    delay(1000);
 }
 
 /*******************************************************************************
@@ -108,12 +103,12 @@ void SPI_SlaveTransmit(uint8_t cData){
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void DataCorrection_Transmit (uint8_t temp){
+void DataCorrection_Transmit (uint8_t header, uint8_t temp){
   uint8_t temp1 = 0, temp2 = 0, i = 0;
   /* Configure the Most Siganificant Four bits of the Byte as: 0001 MSFB */
-  temp1 = (temp >> 4) | 0x10;
+  temp1 = (temp >> 4) | header;
   /* Configure the Least Siganificant Four bits of the Byte as: 0001 LSFB */
-  temp2 = (temp & 0x0f) | 0x10;
+  temp2 = (temp & 0x0f) | header;
   /* Transmit each original byte 3 times for failure correction*/
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, LOW);
@@ -121,7 +116,6 @@ void DataCorrection_Transmit (uint8_t temp){
       SPI_SlaveTransmit(temp1);
       SPI_SlaveTransmit(temp2); 
   }  
-  //delay(200);
   digitalWrite(RXTX, HIGH);
 }
 
@@ -149,24 +143,10 @@ void Modem_CtrlRead()
   temp3 = SPI_SlaveReceive();
   temp4 = SPI_SlaveReceive();
   correction2 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
-  //while(correction1 != correction2)
   Serial.println("C 1");
   Serial.println(correction1,BIN);
   Serial.println("C 2");
   Serial.println(correction2,BIN);
-  //Serial.println("byte 3");
-  //Serial.println(temp3,BIN);
-  /*correction = (((temp1| correction)<<8)| (temp2 & 0x00FF)) << 1;
-  Serial.println(correction >> 8,HEX);
-  //Serial.println(temp1,BIN);
-  correction = 0;
-  correction = (((temp2| correction)<<8)| (temp3 & 0x00FF)) << 1;
-  Serial.println(correction >> 8,HEX);
-  //Serial.println(temp2,BIN);
-  correction = 0;
-  correction = (((temp3| correction)<<8)| (temp1 & 0x00FF)) << 1;
-  Serial.println(correction >> 8,HEX);
-  //Serial.println(temp3,BIN);*/
 }
 
 void Modem_CtrlWrite(void){
@@ -177,13 +157,24 @@ void Modem_CtrlWrite(void){
   SPI_SlaveTransmit(0x32);
 }
 
-void pin_ISR(){
-  button = digitalRead(BUTTON);
-  if ((button == HIGH) & (light_flag == 0)){
-    DataCorrection_Transmit(0xAC);
-    light_flag = 1;
+void pin_ISR1(){
+  button1 = digitalRead(BUTTON1);
+  if ((button1 == HIGH) & (light1_flag == 0)){
+    DataCorrection_Transmit(0x10,0xAC);
+    light1_flag = 1;
   }else{
-    DataCorrection_Transmit(0xAD);
-    light_flag = 0;
+    DataCorrection_Transmit(0x10,0xAD);
+    light1_flag = 0;
+  }
+}
+
+void pin_ISR2(){
+  button2 = digitalRead(BUTTON2);
+  if ((button2 == HIGH) & (light2_flag == 0)){
+    DataCorrection_Transmit(0x20,0xAC);
+    light2_flag = 1;
+  }else{
+    DataCorrection_Transmit(0x20,0xAD);
+    light2_flag = 0;
   }
 }

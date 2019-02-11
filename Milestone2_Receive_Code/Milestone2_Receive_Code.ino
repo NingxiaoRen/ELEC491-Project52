@@ -1,5 +1,3 @@
-#include <SPI.h>
-
 #define LED      2
 #define RXTX     15
 #define REG_DATA 18
@@ -17,8 +15,7 @@
   *******************************************************************************/
 volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
-volatile uint8_t  temp1 = 0, temp2 = 0, cc_byte = 0, check_pointer = 0;
-//volatile uint8_t = instruction1 = 0;
+volatile uint8_t temp1 = 0, temp2 = 0, cc_byte = 0, check_pointer = 0;
 volatile uint8_t spi_buffer[SIZE], check_buffer[3];
 volatile uint8_t i = 0;
 
@@ -28,30 +25,14 @@ void setup() {
   Serial.begin(115200);
   SPI_SlaveInit();
   digitalWrite(SS_CTRL, LOW);
-  //SPI.attachInterrupt();   // now turn on interrupts
-  //digitalWrite(RXTX, HIGH);
-  //delay(100);
-  //digitalWrite(LED, LOW);
-  //PCICR = (1<<PCIE1);
-  //PCMSK1 = (1<<PCINT13);
-  //PCIFR = 0x00;
   PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
   PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
   sei();    // turn on interrupts
 }
 
 void loop() {
-  /* while(i < 2)
-  {
-    Modem_CtrlWrite();
-    Modem_CtrlRead();
-    i++;
-  }*/
-
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, HIGH);
-  delay(5);
-  //digitalWrite(SS_CTRL,LOW);
   if(pos_write != pos_read){
     // Combine two bytes to one byte received data 
     if(cc_byte == 0)
@@ -59,8 +40,8 @@ void loop() {
       // Shifting MSB four bits 
       temp1 = spi_buffer[pos_read];
       spi_buffer[pos_read]=0;
-      while((temp1&0xf0)>0x10) temp1 = temp1>>1;
-      if ((temp1&0xf0) == 0x10) {cc_byte = 1;
+      while((temp1&0xf0)>0x30) temp1 = temp1>>1;
+      if ((temp1&0xf0) == 0x30) {cc_byte = 1;
       }else{ cc_byte = 0;}
       temp1 = temp1<<4;
       //cc_byte = 1;
@@ -70,7 +51,7 @@ void loop() {
       // Shifting LSB four bits 
       temp2 = spi_buffer[pos_read];
       spi_buffer[pos_read]=0x00;
-      while((temp2&0xf0)>0x10) temp2=temp2>>1;
+      while((temp2&0xf0)>0x30) temp2=temp2>>1;
       temp2 &= 0x0f;
       temp2 |= temp1; 
       cc_byte = 0;
@@ -81,13 +62,13 @@ void loop() {
       {
         check_pointer = 0;
         if((check_buffer[0] == check_buffer[1] ) && (check_buffer[1] == check_buffer[2]))
-         
-          {temp2 = check_buffer[0];
+        {
+          temp2 = check_buffer[0];
           command_library(temp2);    
-          }else
+         }
+         else
           temp2 = 0xE;
         Serial.println(temp2,HEX);
-        //Serial.println(temp1,HEX);
       }
       temp1 = 0;
       temp2 = 0;
