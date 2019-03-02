@@ -1,9 +1,9 @@
 #define LED      2
 #define RXTX     15
-#define REG_DATA 18
-#define CD_PD    19
+#define REG_DATA 16
+#define CD_PD    17
 #define SS_CTRL  9
-#define SIZE     50
+#define SIZE     40
 
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
@@ -200,35 +200,89 @@ void Modem_CtrlRead()
   /* Drive REG_DATA and RXTX high to request control register data from ST7540 */
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, HIGH);
-  uint8_t temp1,temp2,temp3, temp4;
-  uint32_t correction1 = 0;
-  uint32_t correction2 = 0;
+  uint8_t temp1,temp2,temp3, temp4,temp5, temp6, temp7, temp8;
+  //uint64_t correction1 = 0;
+  //uint64_t correction2 = 0;
   digitalWrite(SS_CTRL,LOW);
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
   temp4 = SPI_SlaveReceive();
-  correction1 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
+  temp5 = SPI_SlaveReceive();
+  temp6 = SPI_SlaveReceive();
+  temp7 = SPI_SlaveReceive();
+  //temp8 = SPI_SlaveReceive();
+  Serial.println("Re 1");
+  Serial.println(temp1,BIN);
+  Serial.println(temp2,BIN);
+  Serial.println(temp3,BIN);
+  Serial.println(temp4,BIN);
+  Serial.println(temp5,BIN);
+  Serial.println(temp6,BIN);
+  Serial.println(temp7,BIN);
+  //correction1 =  ((uint64_t)temp1<<56) | ((uint64_t)temp2<<48) | ((uint64_t)temp3<<40) | ((uint64_t)temp4) <<32 | ((uint64_t)temp5<<24) | ((uint64_t)temp6<<16) | ((uint64_t)temp7<<8);// | ((uint64_t)temp8);
   temp1 = SPI_SlaveReceive();
   temp2 = SPI_SlaveReceive();
   temp3 = SPI_SlaveReceive();
   temp4 = SPI_SlaveReceive();
-  correction2 =  ((uint32_t)temp1<<24) | ((uint32_t)temp2<<16) | ((uint32_t)temp3<<8) | ((uint32_t)temp4);
+  temp5 = SPI_SlaveReceive();
+  temp6 = SPI_SlaveReceive();
+  temp7 = SPI_SlaveReceive();
+  Serial.println("Re 2");
+    Serial.println(temp1,BIN);
+  Serial.println(temp2,BIN);
+  Serial.println(temp3,BIN);
+  Serial.println(temp4,BIN);
+  Serial.println(temp5,BIN);
+  Serial.println(temp6,BIN);
+  Serial.println(temp7,BIN);
+  //temp8 = SPI_SlaveReceive();
+  //correction2 =  ((uint64_t)temp1<<56) | ((uint64_t)temp2<<48) | ((uint64_t)temp3<<40) | ((uint64_t)temp4) <<32 | ((uint64_t)temp5<<24) | ((uint64_t)temp6<<16) | ((uint64_t)temp7<<8);// | ((uint64_t)temp8);
   //while(correction1 != correction2)
   digitalWrite(SS_CTRL,HIGH);
-  Serial.println("C 1");
+  /*Serial.println("C 1");
   Serial.println(correction1,BIN);
   Serial.println("C 2");
   Serial.println(correction2,BIN);
+  */
 }
-
+  /*--------------------------------------------------------------
+    Registers configuration for ST7540
+    --------------------------------------------------------------
+  
+    +-------+--------+-------+
+    | 0x93  |  0x94  |  0x17 |
+    +-------+--------+-------+
+    10010011 10010100 00010111
+    |||||||| |||||||| ||||||||
+    |||||||| |||||||| |||||+++- Frequency   : 132.5 KHz (default)
+    |||||||| |||||||| |||++---- Baud Rate   : 2400 bps (default)
+    |||||||| |||||||| ||+------ Deviation   : 0.5 (default)
+    |||||||| |||||||| |+------- WatchDog    : Disabled
+    |||||||| |||||||+ +-------- Tx Timeout  : Disabled
+    |||||||| |||||++- --------- Freq D.T.   : 3m usec
+    |||||||| ||||+--- --------- Reserved    : 0
+    |||||||| ||++---- --------- Preamble    : With Conditioning
+    |||||||| |+------ --------- Mains I.M.  : Synchronous
+    |||||||+ +------- --------- Output Clock: Off
+    ||||||+- -------- --------- Output V.L. : Off
+    |||||+-- -------- --------- Header Rec. : Disabled
+    ||||+--- -------- --------- Frame Len C.: Disabled
+    |||+---- -------- --------- Header Len  : 16 bit
+    ||+----- -------- --------- Extended Rgs: Disabled
+    |+------ -------- --------- Sensitivity : Normal 
+    +------- -------- --------- Input Filter: Enabled
+  */
 void Modem_CtrlWrite(void){
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, LOW);
   digitalWrite(SS_CTRL,LOW);
-  SPI_SlaveTransmit(0x13);
-  SPI_SlaveTransmit(0xB2);
-  SPI_SlaveTransmit(0x32);
+  SPI_SlaveTransmit(0x08);
+  SPI_SlaveTransmit(0x99);
+  SPI_SlaveTransmit(0x58);
+  SPI_SlaveTransmit(0xAF);
+  SPI_SlaveTransmit(0x92);
+  SPI_SlaveTransmit(0x17);
   digitalWrite(SS_CTRL,HIGH);
 }
 
