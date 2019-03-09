@@ -197,54 +197,29 @@ void DataCorrection_Transmit (uint8_t temp){
 *******************************************************************************/
 void Modem_CtrlRead()
 {
-  /* Drive REG_DATA and RXTX high to request control register data from ST7540 */
-  digitalWrite(REG_DATA, HIGH);
+  char buf[32]; 
+  uint64_t readBuffer = 0;
+  uint64_t control_reg = 0x089B58AF92170000;
+  // Drive REG_ATA and RXTX high to request control register data from ST7540 
+  Serial.print("CtrlReg Check: ");
+  digitalWrite(REG_DATA,HIGH);
   digitalWrite(RXTX, HIGH);
-  uint8_t temp1,temp2,temp3, temp4,temp5, temp6, temp7, temp8;
-  //uint64_t correction1 = 0;
-  //uint64_t correction2 = 0;
+  // Reading data 
   digitalWrite(SS_CTRL,LOW);
-  temp1 = SPI_SlaveReceive();
-  temp2 = SPI_SlaveReceive();
-  temp3 = SPI_SlaveReceive();
-  temp4 = SPI_SlaveReceive();
-  temp5 = SPI_SlaveReceive();
-  temp6 = SPI_SlaveReceive();
-  temp7 = SPI_SlaveReceive();
-  //temp8 = SPI_SlaveReceive();
-  Serial.println("Re 1");
-  Serial.println(temp1,BIN);
-  Serial.println(temp2,BIN);
-  Serial.println(temp3,BIN);
-  Serial.println(temp4,BIN);
-  Serial.println(temp5,BIN);
-  Serial.println(temp6,BIN);
-  Serial.println(temp7,BIN);
-  //correction1 =  ((uint64_t)temp1<<56) | ((uint64_t)temp2<<48) | ((uint64_t)temp3<<40) | ((uint64_t)temp4) <<32 | ((uint64_t)temp5<<24) | ((uint64_t)temp6<<16) | ((uint64_t)temp7<<8);// | ((uint64_t)temp8);
-  temp1 = SPI_SlaveReceive();
-  temp2 = SPI_SlaveReceive();
-  temp3 = SPI_SlaveReceive();
-  temp4 = SPI_SlaveReceive();
-  temp5 = SPI_SlaveReceive();
-  temp6 = SPI_SlaveReceive();
-  temp7 = SPI_SlaveReceive();
-  Serial.println("Re 2");
-    Serial.println(temp1,BIN);
-  Serial.println(temp2,BIN);
-  Serial.println(temp3,BIN);
-  Serial.println(temp4,BIN);
-  Serial.println(temp5,BIN);
-  Serial.println(temp6,BIN);
-  Serial.println(temp7,BIN);
-  //temp8 = SPI_SlaveReceive();
-  //correction2 =  ((uint64_t)temp1<<56) | ((uint64_t)temp2<<48) | ((uint64_t)temp3<<40) | ((uint64_t)temp4) <<32 | ((uint64_t)temp5<<24) | ((uint64_t)temp6<<16) | ((uint64_t)temp7<<8);// | ((uint64_t)temp8);
-  //while(correction1 != correction2)
+  for(i = 0; i < 8; i ++)
+    readBuffer = (readBuffer<<8) | SPI_SlaveReceive();
   digitalWrite(SS_CTRL,HIGH);
-  /*Serial.println("C 1");
-  Serial.println(correction1,BIN);
-  Serial.println("C 2");
-  Serial.println(correction2,BIN);
-  */
+  // Verify data
+  while(((readBuffer>>32) & 0x08000000)!= 0x08000000)
+    readBuffer = readBuffer<<1;  
+  sprintf(buf, "%08lX", readBuffer>>32);
+  Serial.print(buf);
+  sprintf(buf, "%08lX", readBuffer);
+  Serial.print(buf);
+  if(readBuffer == control_reg)
+      Serial.println("  Pass !!");
+  else
+      Serial.println("  Fail !!!");
 }
   /*--------------------------------------------------------------
     Registers configuration for ST7540
@@ -278,7 +253,7 @@ void Modem_CtrlWrite(void){
   digitalWrite(RXTX, LOW);
   digitalWrite(SS_CTRL,LOW);
   SPI_SlaveTransmit(0x08);
-  SPI_SlaveTransmit(0x99);
+  SPI_SlaveTransmit(0x9B);
   SPI_SlaveTransmit(0x58);
   SPI_SlaveTransmit(0xAF);
   SPI_SlaveTransmit(0x92);
