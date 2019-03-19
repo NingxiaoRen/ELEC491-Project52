@@ -4,12 +4,21 @@
 #define RXTX     15
 #define REG_DATA 16
 #define CD_PD    17
+#define SIZE     40
+
 
 uint8_t i = 0;
 volatile int button1 = 0;
 volatile int light1_flag = 0;
 volatile int button2 = 0;
 volatile int light2_flag = 0;
+const uint16_t SLAVE1_HEADER = 0x9B58;
+const uint16_t SLAVE2_HEADER = 0x9B51;
+volatile uint16_t pos_write = 0;
+volatile uint16_t pos_read = 0;
+volatile uint8_t check_pointer = 0;
+volatile uint8_t spi_buffer[SIZE], check_buffer[2];
+
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -26,18 +35,53 @@ void setup() {
   Serial.begin(115200);
   SPI_SlaveInit();
   digitalWrite(SS_CTRL,LOW);
+  /*PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
+  PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
+  sei();    // turn on interrupts*/
 }
  
 void loop() {
-    DataCorrection_Transmit(0x20, 0xAC);
+    DataCorrection_Transmit(SLAVE1_HEADER, 0xAC);
     delay(1000);
-    DataCorrection_Transmit(0x30, 0xAC);
+    DataCorrection_Transmit(SLAVE2_HEADER, 0xAC);
     delay(1000);
-    DataCorrection_Transmit(0x20, 0xAD);
+    DataCorrection_Transmit(SLAVE1_HEADER, 0xAD);
     delay(1000);
-    DataCorrection_Transmit(0x30, 0xAD);
+    DataCorrection_Transmit(SLAVE2_HEADER, 0xAD);
     delay(1000);
 }
+
+/*******************************************************************************
+* Function Name  : ISR
+* Description    : Interrupt Service Routine for SPI transfer complete
+* Input          : SPI transfer complete
+* Output         : Print data in SPI buffer
+*******************************************************************************/
+/*ISR (SPI_STC_vect){
+  //byte c = SPDR;
+  spi_buffer[pos_write] = SPDR;
+  //Serial.println(spi_buffer[pos_write],HEX);
+  pos_write++;
+  if(pos_write>SIZE-1) pos_write = 0;
+} */
+
+/*******************************************************************************
+* Function Name  : ISR
+* Description    : Interrupt Service Routine for PCINT1/PB1/D9 changes (SS/PCINT2/PB2)
+* Input          : SPI transfer complete
+* Output         : Print data in SPI buffer
+*******************************************************************************/
+/*ISR (PCINT0_vect){
+  //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
+  //To continue we need to set the SS high
+  if(PINB & (1<<PB0)){//rising
+    //Serial.println("CD_PD Rising");
+    digitalWrite(SS_CTRL,HIGH);
+  }else{//falling
+    //Serial.println("CD_PD Falling");
+    digitalWrite(SS_CTRL,LOW);
+  }
+}*/
 
 /*******************************************************************************
 * Function Name  : SPI_SlaveInit
@@ -101,22 +145,58 @@ void SPI_SlaveTransmit(uint8_t cData){
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void DataCorrection_Transmit (uint8_t header, uint8_t temp){
-  uint8_t temp1 = 0, temp2 = 0, i = 0;
-  /* Configure the Most Siganificant Four bits of the Byte as: 0001 MSFB */
-  temp1 = (temp >> 4) | header;
-  /* Configure the Least Siganificant Four bits of the Byte as: 0001 LSFB */
-  temp2 = (temp & 0x0f) | header;
-  /* Transmit each original byte 3 times for failure correction*/
-  digitalWrite(REG_DATA, LOW);
+void DataCorrection_Transmit (const uint16_t header, uint8_t command)
+{
+	// Transmit mode
+	digitalWrite(REG_DATA, LOW);
+	digitalWrite(RXTX, LOW);
+	// Send the header
+	SPI_SlaveTransmit(header>>8);
+	SPI_SlaveTransmit(header);
+	// Send the command twice
+	for (i=0; i<2; i++) 
+		SPI_SlaveTransmit(command); 
+	// End transmission
+	digitalWrite(RXTX, HIGH);
+}
+
+  /*--------------------------------------------------------------
+    Registers configuration for ST7540
+    --------------------------------------------------------------
+  
+    +-------+--------+-------+
+    | 0x93  |  0x94  |  0x17 |
+    +-------+--------+-------+
+    10010011 10010100 00010111
+    |||||||| |||||||| ||||||||
+    |||||||| |||||||| |||||+++- Frequency   : 132.5 KHz (default)
+    |||||||| |||||||| |||++---- Baud Rate   : 2400 bps (default)
+    |||||||| |||||||| ||+------ Deviation   : 0.5 (default)
+    |||||||| |||||||| |+------- WatchDog    : Disabled
+    |||||||| |||||||+ +-------- Tx Timeout  : Disabled
+    |||||||| |||||++- --------- Freq D.T.   : 3m usec
+    |||||||| ||||+--- --------- Reserved    : 0
+    |||||||| ||++---- --------- Preamble    : With Conditioning
+    |||||||| |+------ --------- Mains I.M.  : Synchronous
+    |||||||+ +------- --------- Output Clock: Off
+    ||||||+- -------- --------- Output V.L. : Off
+    |||||+-- -------- --------- Header Rec. : Disabled
+    ||||+--- -------- --------- Frame Len C.: Disabled
+    |||+---- -------- --------- Header Len  : 16 bit
+    ||+----- -------- --------- Extended Rgs: Disabled
+    |+------ -------- --------- Sensitivity : Normal 
+    +------- -------- --------- Input Filter: Enabled
+  */
+void Modem_CtrlWrite(void){
+  digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, LOW);
+  SPI_SlaveTransmit(0x08);
   SPI_SlaveTransmit(0x9B);
-  SPI_SlaveTransmit(0x58);
-  for (i=0; i<3; i++) {
-      SPI_SlaveTransmit(temp1);
-      SPI_SlaveTransmit(temp2); 
-  }  
-  digitalWrite(RXTX, HIGH);
+  SPI_SlaveTransmit(0x50);
+  SPI_SlaveTransmit(0xAF);
+  SPI_SlaveTransmit(0x92);
+  SPI_SlaveTransmit(0x17);
+  digitalWrite(SS_CTRL,HIGH);
 }
 
 /*******************************************************************************
@@ -151,45 +231,8 @@ void Modem_CtrlRead()
   else
       Serial.println("  Fail !!!");
 }
-  /*--------------------------------------------------------------
-    Registers configuration for ST7540
-    --------------------------------------------------------------
-  
-    +-------+--------+-------+
-    | 0x93  |  0x94  |  0x17 |
-    +-------+--------+-------+
-    10010011 10010100 00010111
-    |||||||| |||||||| ||||||||
-    |||||||| |||||||| |||||+++- Frequency   : 132.5 KHz (default)
-    |||||||| |||||||| |||++---- Baud Rate   : 2400 bps (default)
-    |||||||| |||||||| ||+------ Deviation   : 0.5 (default)
-    |||||||| |||||||| |+------- WatchDog    : Disabled
-    |||||||| |||||||+ +-------- Tx Timeout  : Disabled
-    |||||||| |||||++- --------- Freq D.T.   : 3m usec
-    |||||||| ||||+--- --------- Reserved    : 0
-    |||||||| ||++---- --------- Preamble    : With Conditioning
-    |||||||| |+------ --------- Mains I.M.  : Synchronous
-    |||||||+ +------- --------- Output Clock: Off
-    ||||||+- -------- --------- Output V.L. : Off
-    |||||+-- -------- --------- Header Rec. : Disabled
-    ||||+--- -------- --------- Frame Len C.: Disabled
-    |||+---- -------- --------- Header Len  : 16 bit
-    ||+----- -------- --------- Extended Rgs: Disabled
-    |+------ -------- --------- Sensitivity : Normal 
-    +------- -------- --------- Input Filter: Enabled
-  */
-void Modem_CtrlWrite(void){
-  digitalWrite(REG_DATA, HIGH);
-  digitalWrite(RXTX, LOW);
-  SPI_SlaveTransmit(0x08);
-  SPI_SlaveTransmit(0x9B);
-  SPI_SlaveTransmit(0x58);
-  SPI_SlaveTransmit(0xAF);
-  SPI_SlaveTransmit(0x92);
-  SPI_SlaveTransmit(0x17);
-  digitalWrite(SS_CTRL,HIGH);
-}
 
+// Buttons
 void pin_ISR1(){
   button1 = digitalRead(BUTTON1);
   if ((button1 == HIGH) & (light1_flag == 0)){

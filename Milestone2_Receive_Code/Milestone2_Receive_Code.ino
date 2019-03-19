@@ -15,9 +15,10 @@
   *******************************************************************************/
 volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
-volatile uint8_t temp1 = 0, temp2 = 0, cc_byte = 0, check_pointer = 0;
-volatile uint8_t spi_buffer[SIZE], check_buffer[3];
+volatile uint8_t check_pointer = 0;
+volatile uint8_t spi_buffer[SIZE], check_buffer[2];
 volatile uint8_t i = 0;
+const uint16_t MASTER_HEADER = 0x9B50;
 
 void setup() {
   pinMode(LED, OUTPUT);
@@ -33,48 +34,23 @@ void setup() {
 void loop() {
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, HIGH);
-  if(pos_write != pos_read){
-    // Combine two bytes to one byte received data 
-    if(cc_byte == 0)
-    {
+  
+  if(pos_write != pos_read)
+  {
       // Shifting MSB four bits 
-      temp1 = spi_buffer[pos_read];
-      spi_buffer[pos_read]=0;
-      while((temp1&0xf0)>0x30) temp1 = temp1>>1;
-      if ((temp1&0xf0) == 0x30) {cc_byte = 1;
-      }else{ cc_byte = 0;}
-      temp1 = temp1<<4;
-      //cc_byte = 1;
-    }
-    else
-    {
-      // Shifting LSB four bits 
-      temp2 = spi_buffer[pos_read];
-      spi_buffer[pos_read]=0x00;
-      while((temp2&0xf0)>0x30) temp2=temp2>>1;
-      temp2 &= 0x0f;
-      temp2 |= temp1; 
-      cc_byte = 0;
-      // Check if the received data is correct. 
-      check_buffer[check_pointer] = temp2;
-      check_pointer++;
-      if(check_pointer >2)
-      {
-        check_pointer = 0;
-        if((check_buffer[0] == check_buffer[1] ) && (check_buffer[1] == check_buffer[2]))
-        {
-          temp2 = check_buffer[0];
-          command_library(temp2);    
-         }
-         else
-          temp2 = 0xE;
-        Serial.println(temp2,HEX);
-      }
-      temp1 = 0;
-      temp2 = 0;
-    }
-     pos_read++;
-     if (pos_read > SIZE - 1) pos_read = 0;
+      check_buffer[check_pointer] = spi_buffer[pos_read];
+	  spi_buffer[pos_read]=0;
+	  check_pointer++; pos_read++;
+	  check_buffer[check_pointer] = spi_buffer[pos_read];
+	  spi_buffer[pos_read]=0;
+	  check_pointer = 0; 
+	  pos_read++;
+	  if (pos_read > SIZE - 1) pos_read = 0;
+	  // Verify received commands
+      if(check_buffer[0] == check_buffer[1] )
+          command_library(check_buffer[0]);    
+      else
+		  Serial.println("Resend commands !!");	
   }
 }
 
@@ -173,20 +149,59 @@ void SPI_SlaveTransmit(uint8_t cData){
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void DataCorrection_Transmit (uint8_t temp){
-  uint8_t temp1 = 0, temp2 = 0, i = 0;
-  /* Configure the Most Siganificant Four bits of the Byte as: 0001 MSFB */
-  temp1 = (temp >> 4) | 0x10;
-  /* Configure the Least Siganificant Four bits of the Byte as: 0001 LSFB */
-  temp2 = (temp & 0x0f) | 0x10;
-  /* Transmit each original byte 3 times for failure correction*/
-  digitalWrite(REG_DATA, LOW);
+void DataCorrection_Transmit (const uint16_t header, uint8_t command)
+{
+	// Transmit mode
+	digitalWrite(REG_DATA, LOW);
+	digitalWrite(RXTX, LOW);
+	// Send the header
+	SPI_SlaveTransmit(header>>8);
+	SPI_SlaveTransmit(header);
+	// Send the command twice
+	for (i=0; i<2; i++) 
+		SPI_SlaveTransmit(command); 
+	// End transmission
+	digitalWrite(RXTX, HIGH);
+}
+
+  /*--------------------------------------------------------------
+    Registers configuration for ST7540
+    --------------------------------------------------------------
+  
+    +-------+--------+-------+
+    | 0x93  |  0x94  |  0x17 |
+    +-------+--------+-------+
+    10010011 10010100 00010111
+    |||||||| |||||||| ||||||||
+    |||||||| |||||||| |||||+++- Frequency   : 132.5 KHz (default)
+    |||||||| |||||||| |||++---- Baud Rate   : 2400 bps (default)
+    |||||||| |||||||| ||+------ Deviation   : 0.5 (default)
+    |||||||| |||||||| |+------- WatchDog    : Disabled
+    |||||||| |||||||+ +-------- Tx Timeout  : Disabled
+    |||||||| |||||++- --------- Freq D.T.   : 3m usec
+    |||||||| ||||+--- --------- Reserved    : 0
+    |||||||| ||++---- --------- Preamble    : With Conditioning
+    |||||||| |+------ --------- Mains I.M.  : Synchronous
+    |||||||+ +------- --------- Output Clock: Off
+    ||||||+- -------- --------- Output V.L. : Off
+    |||||+-- -------- --------- Header Rec. : Disabled
+    ||||+--- -------- --------- Frame Len C.: Disabled
+    |||+---- -------- --------- Header Len  : 16 bit
+    ||+----- -------- --------- Extended Rgs: Disabled
+    |+------ -------- --------- Sensitivity : Normal 
+    +------- -------- --------- Input Filter: Enabled
+  */
+void Modem_CtrlWrite(void){
+  digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, LOW);
-  for (i=0; i<3; i++) {
-      SPI_SlaveTransmit(temp1);
-      SPI_SlaveTransmit(temp2); 
-  }  
-  digitalWrite(RXTX,HIGH);
+  digitalWrite(SS_CTRL,LOW);
+  SPI_SlaveTransmit(0x01);
+  SPI_SlaveTransmit(0x9B);
+  SPI_SlaveTransmit(0x58);
+  SPI_SlaveTransmit(0xAF);
+  SPI_SlaveTransmit(0x92);
+  SPI_SlaveTransmit(0x17);
+  digitalWrite(SS_CTRL,HIGH);
 }
 
 /*******************************************************************************
@@ -221,53 +236,17 @@ void Modem_CtrlRead()
   else
       Serial.println("  Fail !!!");
 }
-  /*--------------------------------------------------------------
-    Registers configuration for ST7540
-    --------------------------------------------------------------
-  
-    +-------+--------+-------+
-    | 0x93  |  0x94  |  0x17 |
-    +-------+--------+-------+
-    10010011 10010100 00010111
-    |||||||| |||||||| ||||||||
-    |||||||| |||||||| |||||+++- Frequency   : 132.5 KHz (default)
-    |||||||| |||||||| |||++---- Baud Rate   : 2400 bps (default)
-    |||||||| |||||||| ||+------ Deviation   : 0.5 (default)
-    |||||||| |||||||| |+------- WatchDog    : Disabled
-    |||||||| |||||||+ +-------- Tx Timeout  : Disabled
-    |||||||| |||||++- --------- Freq D.T.   : 3m usec
-    |||||||| ||||+--- --------- Reserved    : 0
-    |||||||| ||++---- --------- Preamble    : With Conditioning
-    |||||||| |+------ --------- Mains I.M.  : Synchronous
-    |||||||+ +------- --------- Output Clock: Off
-    ||||||+- -------- --------- Output V.L. : Off
-    |||||+-- -------- --------- Header Rec. : Disabled
-    ||||+--- -------- --------- Frame Len C.: Disabled
-    |||+---- -------- --------- Header Len  : 16 bit
-    ||+----- -------- --------- Extended Rgs: Disabled
-    |+------ -------- --------- Sensitivity : Normal 
-    +------- -------- --------- Input Filter: Enabled
-  */
-void Modem_CtrlWrite(void){
-  digitalWrite(REG_DATA, HIGH);
-  digitalWrite(RXTX, LOW);
-  digitalWrite(SS_CTRL,LOW);
-  SPI_SlaveTransmit(0x08);
-  SPI_SlaveTransmit(0x9B);
-  SPI_SlaveTransmit(0x58);
-  SPI_SlaveTransmit(0xAF);
-  SPI_SlaveTransmit(0x92);
-  SPI_SlaveTransmit(0x17);
-  digitalWrite(SS_CTRL,HIGH);
-}
+
 
 void command_library(uint8_t command){
   switch(command){
     case 0xAC:
       digitalWrite(LED,HIGH);
+	  Serial.println("AC ON");
       break;
     case 0xAD:
       digitalWrite(LED,LOW);
+	  Serial.println("AD OFF");
       break;
     default:
       break;
