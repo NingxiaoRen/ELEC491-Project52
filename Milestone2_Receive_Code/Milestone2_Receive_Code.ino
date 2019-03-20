@@ -3,7 +3,7 @@
 #define REG_DATA 16
 #define CD_PD    17
 #define SS_CTRL  9
-#define SIZE     40
+#define SIZE     100
 
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
@@ -13,10 +13,11 @@
                 LOW      LOW          Data write        MISO --> TXD/INPUT
    CD_PD High: Not transfer;  LOW: Transfer
   *******************************************************************************/
+volatile uint8_t cmd;
 volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
-volatile uint8_t check_pointer = 0;
-volatile uint8_t spi_buffer[SIZE], check_buffer[2];
+volatile uint16_t pos_check = 0;
+volatile uint8_t spi_buffer[SIZE], check_buffer[4];
 volatile uint8_t i = 0;
 const uint16_t MASTER_HEADER = 0x9B50;
 
@@ -25,32 +26,43 @@ void setup() {
   digitalWrite(LED, LOW);
   Serial.begin(115200);
   SPI_SlaveInit();
+  pos_read = 0;pos_write = 0;
   digitalWrite(SS_CTRL, LOW);
   PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
   PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
   sei();    // turn on interrupts
+  digitalWrite(REG_DATA, LOW);
+  digitalWrite(RXTX, HIGH);
 }
 
 void loop() {
-  digitalWrite(REG_DATA, LOW);
-  digitalWrite(RXTX, HIGH);
-  
   if(pos_write != pos_read)
   {
-      // Shifting MSB four bits 
-      check_buffer[check_pointer] = spi_buffer[pos_read];
-	  spi_buffer[pos_read]=0;
-	  check_pointer++; pos_read++;
-	  check_buffer[check_pointer] = spi_buffer[pos_read];
-	  spi_buffer[pos_read]=0;
-	  check_pointer = 0; 
-	  pos_read++;
-	  if (pos_read > SIZE - 1) pos_read = 0;
-	  // Verify received commands
-      if(check_buffer[0] == check_buffer[1] )
-          command_library(check_buffer[0]);    
-      else
-		  Serial.println("Resend commands !!");	
+      Serial.print(pos_read);
+      Serial.print("  ");
+      Serial.print(pos_write);
+      Serial.print("  ");
+      Serial.println(spi_buffer[pos_read], HEX);
+      check_buffer[pos_check] = spi_buffer[pos_read];
+      spi_buffer[pos_read] = 0;
+      pos_read++; pos_check ++;
+      if (pos_read > SIZE - 1) pos_read = 0;
+      if (pos_check == 4)
+      {
+        pos_check = 0;
+        if((check_buffer[0]==check_buffer[1]) ||(check_buffer[2]==check_buffer[3]))
+        {
+          if((check_buffer[0]==check_buffer[1]))
+            cmd = check_buffer[0];
+          if((check_buffer[2]==check_buffer[3]))
+            cmd = check_buffer[2]; 
+          command_library(cmd); 
+        }
+        else
+        {
+          //Serial.println("Resend commands !!");
+        }
+       }
   }
 }
 
@@ -109,6 +121,7 @@ void SPI_SlaveInit(void){
   Modem_CtrlWrite();
   Modem_CtrlRead();
   SPCR |= (1<<SPIE);
+  delay(100);
 }
 
 /*******************************************************************************
@@ -214,7 +227,7 @@ void Modem_CtrlRead()
 {
   char buf[32]; 
   uint64_t readBuffer = 0;
-  uint64_t control_reg = 0x089B58AF92170000;
+  uint64_t control_reg = 0x029B58AF92170000;
   // Drive REG_ATA and RXTX high to request control register data from ST7540 
   Serial.print("CtrlReg Check: ");
   digitalWrite(REG_DATA,HIGH);
@@ -225,7 +238,7 @@ void Modem_CtrlRead()
     readBuffer = (readBuffer<<8) | SPI_SlaveReceive();
   digitalWrite(SS_CTRL,HIGH);
   // Verify data
-  while(((readBuffer>>32) & 0x08000000)!= 0x08000000)
+  while(((readBuffer>>32) & 0x02000000)!= 0x02000000)
     readBuffer = readBuffer<<1;  
   sprintf(buf, "%08lX", readBuffer>>32);
   Serial.print(buf);

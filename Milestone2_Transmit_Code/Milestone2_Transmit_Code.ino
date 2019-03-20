@@ -13,7 +13,7 @@ volatile int light1_flag = 0;
 volatile int button2 = 0;
 volatile int light2_flag = 0;
 const uint16_t SLAVE1_HEADER = 0x9B58;
-const uint16_t SLAVE2_HEADER = 0x9B51;
+const uint16_t SLAVE2_HEADER = 0x1B51;
 volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
 volatile uint8_t check_pointer = 0;
@@ -42,13 +42,13 @@ void setup() {
  
 void loop() {
     DataCorrection_Transmit(SLAVE1_HEADER, 0xAC);
-    delay(1000);
-    DataCorrection_Transmit(SLAVE2_HEADER, 0xAC);
-    delay(1000);
+    delay(300);
+    DataCorrection_Transmit(SLAVE2_HEADER, 0xBE);
+    delay(300);
     DataCorrection_Transmit(SLAVE1_HEADER, 0xAD);
-    delay(1000);
-    DataCorrection_Transmit(SLAVE2_HEADER, 0xAD);
-    delay(1000);
+    delay(300);
+    DataCorrection_Transmit(SLAVE2_HEADER, 0xBF);
+    delay(300);
 }
 
 /*******************************************************************************
@@ -151,13 +151,24 @@ void DataCorrection_Transmit (const uint16_t header, uint8_t command)
 	digitalWrite(REG_DATA, LOW);
 	digitalWrite(RXTX, LOW);
 	// Send the header
-	SPI_SlaveTransmit(header>>8);
-	SPI_SlaveTransmit(header);
+	SPI_SlaveTransmit((uint8_t)(header>>8));
+	SPI_SlaveTransmit((uint8_t)header);
 	// Send the command twice
-	for (i=0; i<2; i++) 
-		SPI_SlaveTransmit(command); 
+  SPI_SlaveTransmit(command);
+	SPI_SlaveTransmit(command);
 	// End transmission
 	digitalWrite(RXTX, HIGH);
+  delay(300);
+  digitalWrite(RXTX, LOW);
+  // Send the header
+  SPI_SlaveTransmit((uint8_t)(header>>8));
+  SPI_SlaveTransmit((uint8_t)header);
+  // Send the command twice
+  SPI_SlaveTransmit(command);
+  SPI_SlaveTransmit(command);
+  // End transmission
+  digitalWrite(RXTX, HIGH);
+  delay(100);
 }
 
   /*--------------------------------------------------------------
@@ -209,7 +220,7 @@ void Modem_CtrlRead()
 {
   char buf[32]; 
   uint64_t readBuffer = 0;
-  uint64_t control_reg = 0x089B58AF92170000;
+  uint64_t control_reg = 0x089B50AF92170000;
   // Drive REG_ATA and RXTX high to request control register data from ST7540 
   Serial.print("CtrlReg Check: ");
   digitalWrite(REG_DATA,HIGH);
