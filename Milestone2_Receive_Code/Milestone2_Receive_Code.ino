@@ -26,16 +26,16 @@ void setup() {
   digitalWrite(LED, LOW);
   Serial.begin(115200);
   SPI_SlaveInit();
-  pos_read = 0;pos_write = 0;
   digitalWrite(SS_CTRL, LOW);
   PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
   PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
   sei();    // turn on interrupts
-  digitalWrite(REG_DATA, LOW);
-  digitalWrite(RXTX, HIGH);
+  pos_read = 0;pos_write = 0;
 }
 
 void loop() {
+  digitalWrite(REG_DATA, LOW);
+  digitalWrite(RXTX, HIGH);
   if(pos_write != pos_read)
   {
       Serial.print(pos_read);
@@ -50,18 +50,24 @@ void loop() {
       if (pos_check == 4)
       {
         pos_check = 0;
-        if((check_buffer[0]==check_buffer[1]) ||(check_buffer[2]==check_buffer[3]))
-        {
-          if((check_buffer[0]==check_buffer[1]))
+        if(check_buffer[0]==check_buffer[1])
             cmd = check_buffer[0];
-          if((check_buffer[2]==check_buffer[3]))
-            cmd = check_buffer[2]; 
-          command_library(cmd); 
-        }
+        else if(check_buffer[0]==check_buffer[2])
+            cmd = check_buffer[0]; 
+        else if (check_buffer[0]==check_buffer[3])
+            cmd = check_buffer[0]; 
+        else if (check_buffer[1]==check_buffer[2])
+            cmd = check_buffer[1]; 
+        else if (check_buffer[1]==check_buffer[3])
+            cmd = check_buffer[1]; 
+        else if (check_buffer[2]==check_buffer[3])
+            cmd = check_buffer[2];
         else
         {
+          cmd = 0;
           //Serial.println("Resend commands !!");
         }
+        command_library(cmd); 
        }
   }
 }
@@ -91,10 +97,10 @@ ISR (PCINT0_vect){
   //To continue we need to set the SS high
   if(PINB & (1<<PB0)){//rising
     //Serial.println("CD_PD Rising");
-    digitalWrite(SS_CTRL,HIGH);
+    digitalWrite(SS_CTRL,HIGH);// Disable SPI
   }else{//falling
     //Serial.println("CD_PD Falling");
-    digitalWrite(SS_CTRL,LOW);
+    digitalWrite(SS_CTRL,LOW); // Enable SPI
   }
 }
 
@@ -152,31 +158,6 @@ void SPI_SlaveTransmit(uint8_t cData){
   while(!(SPSR & (1<<SPIF)));
 }
 
-/*******************************************************************************
-* Function Name  : DataCorrection_Transmit
-* Description    : Divide one byte data into two bytes by adding a header to each
-				   four bits of the data. the header will also serve as the address
-				   of each device. we can use the header for bit correction and for 
-				   ack protocols between master and slaves.
-* Input          : transmitted data
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void DataCorrection_Transmit (const uint16_t header, uint8_t command)
-{
-	// Transmit mode
-	digitalWrite(REG_DATA, LOW);
-	digitalWrite(RXTX, LOW);
-	// Send the header
-	SPI_SlaveTransmit(header>>8);
-	SPI_SlaveTransmit(header);
-	// Send the command twice
-	for (i=0; i<2; i++) 
-		SPI_SlaveTransmit(command); 
-	// End transmission
-	digitalWrite(RXTX, HIGH);
-}
-
   /*--------------------------------------------------------------
     Registers configuration for ST7540
     --------------------------------------------------------------
@@ -208,7 +189,7 @@ void Modem_CtrlWrite(void){
   digitalWrite(REG_DATA, HIGH);
   digitalWrite(RXTX, LOW);
   digitalWrite(SS_CTRL,LOW);
-  SPI_SlaveTransmit(0x01);
+  SPI_SlaveTransmit(0x02);
   SPI_SlaveTransmit(0x9B);
   SPI_SlaveTransmit(0x58);
   SPI_SlaveTransmit(0xAF);
@@ -253,13 +234,13 @@ void Modem_CtrlRead()
 
 void command_library(uint8_t command){
   switch(command){
-    case 0xAC:
+    case 0xFC:
       digitalWrite(LED,HIGH);
-	  Serial.println("AC ON");
+	  Serial.println("FC ON");
       break;
-    case 0xAD:
+    case 0xFD:
       digitalWrite(LED,LOW);
-	  Serial.println("AD OFF");
+	  Serial.println("FD OFF");
       break;
     default:
       break;

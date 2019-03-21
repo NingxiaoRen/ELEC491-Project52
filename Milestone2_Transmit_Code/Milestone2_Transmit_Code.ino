@@ -41,14 +41,15 @@ void setup() {
 }
  
 void loop() {
-    DataCorrection_Transmit(SLAVE1_HEADER, 0xAC);
+
+    DataCorrection_Transmit(SLAVE1_HEADER, 0xFC);
     delay(300);
-    DataCorrection_Transmit(SLAVE2_HEADER, 0xBE);
+    //DataCorrection_Transmit(SLAVE2_HEADER, 0xBE);
+    //delay(300);
+    DataCorrection_Transmit(SLAVE1_HEADER, 0xFD);
     delay(300);
-    DataCorrection_Transmit(SLAVE1_HEADER, 0xAD);
-    delay(300);
-    DataCorrection_Transmit(SLAVE2_HEADER, 0xBF);
-    delay(300);
+    //DataCorrection_Transmit(SLAVE2_HEADER, 0xBF);
+    //delay(300);
 }
 
 /*******************************************************************************
@@ -156,19 +157,10 @@ void DataCorrection_Transmit (const uint16_t header, uint8_t command)
 	// Send the command twice
   SPI_SlaveTransmit(command);
 	SPI_SlaveTransmit(command);
+  SPI_SlaveTransmit(command);
+  SPI_SlaveTransmit(command);
 	// End transmission
 	digitalWrite(RXTX, HIGH);
-  delay(300);
-  digitalWrite(RXTX, LOW);
-  // Send the header
-  SPI_SlaveTransmit((uint8_t)(header>>8));
-  SPI_SlaveTransmit((uint8_t)header);
-  // Send the command twice
-  SPI_SlaveTransmit(command);
-  SPI_SlaveTransmit(command);
-  // End transmission
-  digitalWrite(RXTX, HIGH);
-  delay(100);
 }
 
   /*--------------------------------------------------------------
