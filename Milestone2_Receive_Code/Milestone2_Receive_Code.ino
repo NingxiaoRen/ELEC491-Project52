@@ -1,10 +1,13 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
 #define LED      2
 #define RXTX     15
 #define REG_DATA 16
 #define CD_PD    17
 #define SS_CTRL  9
 #define SIZE     100
-
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -34,6 +37,9 @@ void setup() {
 }
 
 void loop() {
+        lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("SKYNET IS ON");
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, HIGH);
   if(pos_write != pos_read)
@@ -237,10 +243,16 @@ void command_library(uint8_t command){
     case 0xFC:
       digitalWrite(LED,HIGH);
 	  Serial.println("FC ON");
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("FC ON");
       break;
     case 0xFD:
       digitalWrite(LED,LOW);
 	  Serial.println("FD OFF");
+   lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("FC OFF");
       break;
     default:
       break;
