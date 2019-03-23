@@ -5,12 +5,15 @@
 #define REG_DATA 16
 #define CD_PD    17
 #define SIZE     40
-
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+#define SELECT   2
+#define DOWN     4
+int buttonPress = 0;
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
 uint8_t i = 0;
-volatile int button1 = 0;
 volatile int light1_flag = 0;
-volatile int button2 = 0;
 volatile int light2_flag = 0;
 const uint16_t SLAVE1_HEADER = 0x9B58;
 const uint16_t SLAVE2_HEADER = 0x1B51;
@@ -18,6 +21,12 @@ volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
 volatile uint8_t check_pointer = 0;
 volatile uint8_t spi_buffer[SIZE], check_buffer[2];
+volatile int selection0 = 1;
+volatile int selection1 = 1;
+volatile int selection2 = 1;
+volatile boolean buttonState_UP = HIGH;
+volatile int prt = 0;
+volatile int MENU = 0;
 
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
@@ -28,13 +37,36 @@ volatile uint8_t spi_buffer[SIZE], check_buffer[2];
    CD_PD High: Not transfer;  LOW: Transfer
   *******************************************************************************/
 void setup() {
-  pinMode(BUTTON1,INPUT);
-  pinMode(BUTTON2,INPUT);
-  attachInterrupt(0, pin_ISR1, RISING);
-  attachInterrupt(1, pin_ISR2, RISING);
+//  pinMode(BUTTON1,INPUT);
+//  pinMode(BUTTON2,INPUT);
+//  attachInterrupt(0, pin_ISR1, RISING);
+//  attachInterrupt(1, pin_ISR2, RISING);
   Serial.begin(115200);
-  SPI_SlaveInit();
+  SPI_SlaveInit();  
   digitalWrite(SS_CTRL,LOW);
+  Serial.begin(115200);
+  pinMode(SELECT,INPUT);
+  digitalWrite(SELECT,HIGH);
+  pinMode(DOWN,INPUT);
+  digitalWrite(DOWN,HIGH);
+  lcd.begin(20,4);
+  lcd.setCursor(3,0);
+  lcd.print("Hello Team 52");
+  lcd.setCursor(2,1);
+  lcd.print("Welcome to your");
+  lcd.setCursor(4,2);
+  lcd.print("Smart Home "); 
+  delay(3000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Select a device to");
+  lcd.setCursor(5,1);
+  lcd.print("control:");
+  lcd.setCursor(0,2);
+  lcd.print("Device 01 <<");
+  lcd.setCursor(0,3);
+  lcd.print("Device 02");
+  delay(1000);
   /*PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
   PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
   sei();    // turn on interrupts*/
@@ -42,14 +74,179 @@ void setup() {
  
 void loop() {
 
-    DataCorrection_Transmit(SLAVE1_HEADER, 0xFC);
-    delay(300);
+    //DataCorrection_Transmit(SLAVE1_HEADER, 0xFC);
+    //delay(300);
     //DataCorrection_Transmit(SLAVE2_HEADER, 0xBE);
     //delay(300);
-    DataCorrection_Transmit(SLAVE1_HEADER, 0xFD);
-    delay(300);
+    //DataCorrection_Transmit(SLAVE1_HEADER, 0xFD);
+    //delay(300);
     //DataCorrection_Transmit(SLAVE2_HEADER, 0xBF);
     //delay(300);
+    buttonPress = digitalRead(SELECT);
+  if(buttonPress == 0){
+    delay(50);
+    buttonPress = digitalRead(SELECT);
+    if(buttonPress == 1){
+       switch (MENU) {
+      case 0: 
+        if(selection0 == 1){
+          MENU = 1;
+          lcd.clear();
+          prt = 1;
+          selection0 = 1;
+        }else if (selection0 == 2){
+          MENU = 2;
+          lcd.clear();
+          prt = 1;
+          selection0 = 1;
+        }
+      break;
+      case 1:
+        if(selection1 == 1){
+          Serial.println("LED ON");
+          DataCorrection_Transmit(SLAVE1_HEADER, 0xFC);
+        }else if(selection1 == 2){
+          Serial.println("LED OFF");
+          DataCorrection_Transmit(SLAVE1_HEADER, 0xFD);
+        }else if(selection1 == 3){
+          MENU = 0;
+          lcd.clear();
+          prt = 1;
+          selection1 = 1;
+        }
+      break;
+      case 2:
+        if(selection2 == 1){
+          MENU = 0;
+          lcd.clear();
+          prt = 1;
+          selection2 = 1;
+        }
+      break;
+      }
+    }  
+  }
+
+  buttonPress = digitalRead(DOWN);
+  if(buttonPress == 0){
+    delay(50);
+    buttonPress = digitalRead(DOWN);
+    if(buttonPress == 1){
+      switch (MENU) {
+      case 0: 
+        selection0 += 1;
+        prt = 1;
+      break;
+      case 1:
+        selection1 += 1;
+        prt = 1;
+      break;
+      case 2:
+        selection2 += 1;
+        prt = 1;
+      break;
+      }
+    }
+      switch (MENU) {
+        case 0:
+          if (selection0 > 2){
+            selection0 = 1;
+          }
+        break;
+        case 1:
+          if (selection1 > 3){
+            selection1 = 1;
+          }
+        break;
+        case 2:
+          if (selection2 > 1){
+            selection2 = 1;
+          }
+        break;
+      }
+    }
+  
+  if (selection0 == 1 && prt == 1 && MENU == 0){
+    lcd.setCursor(0,0);
+    lcd.print("Select a device to");
+    lcd.setCursor(5,1);
+    lcd.print("control:");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Device 01 <<");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(0,3);
+    lcd.print("Device 02");
+    prt = 0;
+  }else if(selection0 == 2 && prt == 1 && MENU == 0){
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(0,3);
+    lcd.print("Device 02 <<");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Device 01");
+    prt = 0;
+  }
+
+  if (selection1 == 1 && prt == 1 && MENU == 1){
+    lcd.setCursor(0,0);
+    lcd.print("Device 1 Menu");
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Turn LED ON  <<");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Turn LED OFF");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }else if(selection1 == 2 && prt == 1 && MENU == 1){
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Turn LED OFF <<");
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Turn LED ON");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }else if(selection1 == 3 && prt == 1 && MENU == 1){
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Turn LED OFF");
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Turn LED ON");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(12,3);
+    lcd.print(">> HOME");
+    prt = 0;
+  }
+
+  if (selection2 == 1 && prt == 1 && MENU == 2){
+    lcd.setCursor(0,0);
+    lcd.print("Device 2 Menu");
+    lcd.setCursor(0,1);
+    lcd.print("More coming soon");
+    lcd.setCursor(12,3);
+    lcd.print(">> HOME");
+    prt = 0;
+  }
 }
 
 /*******************************************************************************
@@ -236,24 +433,24 @@ void Modem_CtrlRead()
 }
 
 // Buttons
-void pin_ISR1(){
-  button1 = digitalRead(BUTTON1);
-  if ((button1 == HIGH) & (light1_flag == 0)){
-    DataCorrection_Transmit(0x10,0xAC);
-    light1_flag = 1;
-  }else{
-    DataCorrection_Transmit(0x10,0xAD);
-    light1_flag = 0;
-  }
-}
-
-void pin_ISR2(){
-  button2 = digitalRead(BUTTON2);
-  if ((button2 == HIGH) & (light2_flag == 0)){
-    DataCorrection_Transmit(0x20,0xAC);
-    light2_flag = 1;
-  }else{
-    DataCorrection_Transmit(0x20,0xAD);
-    light2_flag = 0;
-  }
-}
+//void pin_ISR1(){
+//  button1 = digitalRead(BUTTON1);
+//  if ((button1 == HIGH) & (light1_flag == 0)){
+//    DataCorrection_Transmit(0x10,0xAC);
+//    light1_flag = 1;
+//  }else{
+//    DataCorrection_Transmit(0x10,0xAD);
+//    light1_flag = 0;
+//  }
+//}
+//
+//void pin_ISR2(){
+//  button2 = digitalRead(BUTTON2);
+//  if ((button2 == HIGH) & (light2_flag == 0)){
+//    DataCorrection_Transmit(0x20,0xAC);
+//    light2_flag = 1;
+//  }else{
+//    DataCorrection_Transmit(0x20,0xAD);
+//    light2_flag = 0;
+//  }
+//}
