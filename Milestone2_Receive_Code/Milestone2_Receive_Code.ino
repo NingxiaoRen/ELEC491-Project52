@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include "buzzer.h"
 
 #define LED      2
 #define RXTX     15
@@ -7,7 +8,7 @@
 #define CD_PD    17
 #define SS_CTRL  9
 #define SIZE     100
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+
   /******************************************************************************
      CD_PD   REG_DATA   RXTX            MODE                DIRECTION
                 HIGH    HIGH     Control regiter read   MOSI <-- RXD/OUTPUT
@@ -23,23 +24,31 @@ volatile uint16_t pos_check = 0;
 volatile uint8_t spi_buffer[SIZE], check_buffer[4];
 volatile uint8_t i = 0;
 const uint16_t MASTER_HEADER = 0x9B50;
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // Set the LCD I2C address
 
 void setup() {
+  
+    pinMode(3, OUTPUT);//buzzer
+  pinMode(13, OUTPUT);//led indicator when singing a note
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
   Serial.begin(115200);
+  lcd.init();  //initialize the lcd
+  lcd.backlight();  //open the backlight
   SPI_SlaveInit();
   digitalWrite(SS_CTRL, LOW);
   PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
   PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
-  sei();    // turn on interrupts
-  pos_read = 0;pos_write = 0;
+  sei();    // turn on interrupts  
+  delay(1000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("SKYNET IS ON");
+  pos_read = 0;pos_write = 0; 
 }
 
 void loop() {
-        lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("SKYNET IS ON");
+
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, HIGH);
   if(pos_write != pos_read)
@@ -74,6 +83,7 @@ void loop() {
           //Serial.println("Resend commands !!");
         }
         command_library(cmd); 
+        flag = flag-2;
        }
   }
 }
@@ -101,6 +111,7 @@ ISR (SPI_STC_vect){
 ISR (PCINT0_vect){
   //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
   //To continue we need to set the SS high
+  flag++;
   if(PINB & (1<<PB0)){//rising
     //Serial.println("CD_PD Rising");
     digitalWrite(SS_CTRL,HIGH);// Disable SPI
@@ -230,11 +241,19 @@ void Modem_CtrlRead()
   sprintf(buf, "%08lX", readBuffer>>32);
   Serial.print(buf);
   sprintf(buf, "%08lX", readBuffer);
-  Serial.print(buf);
+  Serial.println(buf);
   if(readBuffer == control_reg)
-      Serial.println("  Pass !!");
+  {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("CtrlCheck: PASS");
+  }
   else
-      Serial.println("  Fail !!!");
+  {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("CtrlCheck: FAIL");
+  }
 }
 
 
@@ -242,17 +261,23 @@ void command_library(uint8_t command){
   switch(command){
     case 0xFC:
       digitalWrite(LED,HIGH);
-	  Serial.println("FC ON");
+      Serial.println("FC ON");
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print("FC ON");
+      lcd.print("Command: 0xFC");
+      lcd.setCursor(0,1);
+      lcd.print("OP: LED ON");
+      sing(1);
       break;
     case 0xFD:
       digitalWrite(LED,LOW);
-	  Serial.println("FD OFF");
-   lcd.clear();
-   lcd.setCursor(0,0);
-   lcd.print("FC OFF");
+      Serial.println("FD OFF");
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Command: 0xFD");
+      lcd.setCursor(0,1);
+      lcd.print("OP: LED OFF");
+      sing(2);
       break;
     default:
       break;
