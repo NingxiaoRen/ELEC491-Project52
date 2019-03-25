@@ -267,7 +267,6 @@ void command_library(uint8_t command){
       lcd.print("Command: 0xFC");
       lcd.setCursor(0,1);
       lcd.print("OP: LED ON");
-      sing(1);
       break;
     case 0xFD:
       digitalWrite(LED,LOW);
@@ -277,6 +276,21 @@ void command_library(uint8_t command){
       lcd.print("Command: 0xFD");
       lcd.setCursor(0,1);
       lcd.print("OP: LED OFF");
+      break;
+    case 0xF1:
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Command: 0xF1");
+      lcd.setCursor(0,1);
+      lcd.print("OP: Play Music 1");
+      sing(1);
+      break;
+    case 0xF2:
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Command: 0xF2");
+      lcd.setCursor(0,1);
+      lcd.print("OP: Play Music 2");
       sing(2);
       break;
     default:

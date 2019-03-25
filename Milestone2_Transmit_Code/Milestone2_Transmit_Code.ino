@@ -1,17 +1,18 @@
-#define BUTTON1  2
-#define BUTTON2  3
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h> 
+//#define BUTTON1  2
+//#define BUTTON2  3
 #define SS_CTRL  9
 #define RXTX     15
 #define REG_DATA 16
 #define CD_PD    17
 #define SIZE     40
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
+
 #define SELECT   2
 #define DOWN     4
 int buttonPress = 0;
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
-
+ 
 uint8_t i = 0;
 volatile int light1_flag = 0;
 volatile int light2_flag = 0;
@@ -21,6 +22,7 @@ volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
 volatile uint8_t check_pointer = 0;
 volatile uint8_t spi_buffer[SIZE], check_buffer[2];
+
 volatile int selection0 = 1;
 volatile int selection1 = 1;
 volatile int selection2 = 1;
@@ -109,6 +111,12 @@ void loop() {
           Serial.println("LED OFF");
           DataCorrection_Transmit(SLAVE1_HEADER, 0xFD);
         }else if(selection1 == 3){
+          Serial.println("Play Music 1");
+          DataCorrection_Transmit(SLAVE1_HEADER, 0xF1);
+        }else if(selection1 == 4){
+          Serial.println("Play Music 2");
+          DataCorrection_Transmit(SLAVE1_HEADER, 0xF2);
+        }else if(selection1 == 5){
           MENU = 0;
           lcd.clear();
           prt = 1;
@@ -154,7 +162,7 @@ void loop() {
           }
         break;
         case 1:
-          if (selection1 > 3){
+          if (selection1 > 5){
             selection1 = 1;
           }
         break;
@@ -192,7 +200,7 @@ void loop() {
     prt = 0;
   }
 
-  if (selection1 == 1 && prt == 1 && MENU == 1){
+  if (selection1 == 1 && prt == 1 && MENU == 1){ //Device 1
     lcd.setCursor(0,0);
     lcd.print("Device 1 Menu");
     lcd.setCursor(0,1);
@@ -209,28 +217,56 @@ void loop() {
     lcd.print("HOME");
     prt = 0;
   }else if(selection1 == 2 && prt == 1 && MENU == 1){
-    lcd.setCursor(0,2);
-    lcd.print("                    ");
-    lcd.setCursor(0,2);
-    lcd.print("Turn LED OFF <<");
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
     lcd.print("Turn LED ON");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Turn LED OFF <<");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
     lcd.print("HOME");
     prt = 0;
   }else if(selection1 == 3 && prt == 1 && MENU == 1){
-    lcd.setCursor(0,2);
+    lcd.setCursor(0,1);
     lcd.print("                    ");
-    lcd.setCursor(0,2);
+    lcd.setCursor(0,1);
     lcd.print("Turn LED OFF");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Play Music 1 <<");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }else if(selection1 == 4 && prt == 1 && MENU == 1){
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn LED ON");
+    lcd.print("Play Music 1");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Play Music 2 <<");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }else if(selection1 == 5 && prt == 1 && MENU == 1){
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Play Music 1");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Play Music 2");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(12,3);
