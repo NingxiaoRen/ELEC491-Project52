@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-//#include "buzzer.h"
+#include "buzzer.h"
 
 #define LED      2
 #define RXTX     15
@@ -27,7 +27,8 @@ const uint16_t MASTER_HEADER = 0x9B50;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  // Set the LCD I2C address
 
 void setup() {
-  pinMode(3, OUTPUT);//buzzer
+  
+    pinMode(3, OUTPUT);//buzzer
   pinMode(13, OUTPUT);//led indicator when singing a note
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
@@ -82,7 +83,7 @@ void loop() {
           //Serial.println("Resend commands !!");
         }
         command_library(cmd); 
-        //flag = flag-2;
+        flag = flag-2;
        }
   }
 }
@@ -110,7 +111,7 @@ ISR (SPI_STC_vect){
 ISR (PCINT0_vect){
   //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
   //To continue we need to set the SS high
-  //flag++;
+  flag++;
   if(PINB & (1<<PB0)){//rising
     //Serial.println("CD_PD Rising");
     digitalWrite(SS_CTRL,HIGH);// Disable SPI
@@ -206,8 +207,8 @@ void Modem_CtrlWrite(void){
   digitalWrite(RXTX, LOW);
   digitalWrite(SS_CTRL,LOW);
   SPI_SlaveTransmit(0x02);
-  SPI_SlaveTransmit(0x9B);
-  SPI_SlaveTransmit(0x58);
+  SPI_SlaveTransmit(0x1B);
+  SPI_SlaveTransmit(0x51);
   SPI_SlaveTransmit(0xAF);
   SPI_SlaveTransmit(0x92);
   SPI_SlaveTransmit(0x17);
@@ -224,7 +225,7 @@ void Modem_CtrlRead()
 {
   char buf[32]; 
   uint64_t readBuffer = 0;
-  uint64_t control_reg = 0x029B58AF92170000;
+  uint64_t control_reg = 0x021B51AF92170000;
   // Drive REG_ATA and RXTX high to request control register data from ST7540 
   Serial.print("CtrlReg Check: ");
   digitalWrite(REG_DATA,HIGH);
@@ -258,7 +259,7 @@ void Modem_CtrlRead()
 
 void command_library(uint8_t command){
   switch(command){
-    case 0xFC:
+    /*case 0xFC:
       digitalWrite(LED,HIGH);
       Serial.println("FC ON");
       lcd.clear();
@@ -275,8 +276,8 @@ void command_library(uint8_t command){
       lcd.print("Command: 0xFD");
       lcd.setCursor(0,1);
       lcd.print("OP: LED OFF");
-      break;
-    /*case 0xF1:
+      break;*/
+    case 0xF1:
       lcd.clear();
       lcd.setCursor(0,0);
       lcd.print("Command: 0xF1");
@@ -291,7 +292,7 @@ void command_library(uint8_t command){
       lcd.setCursor(0,1);
       lcd.print("OP: Play Music 2");
       sing(2);
-      break;*/
+      break;
     default:
       break;
   }
