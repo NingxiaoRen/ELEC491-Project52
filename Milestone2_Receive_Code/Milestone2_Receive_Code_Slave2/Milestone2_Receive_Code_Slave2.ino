@@ -24,6 +24,7 @@ volatile uint16_t pos_check = 0;
 volatile uint8_t spi_buffer[SIZE], check_buffer[4];
 volatile uint8_t i = 0;
 const uint16_t MASTER_HEADER = 0x9B50;
+const uint16_t SLAVE2_HEADER = 0x9118;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  // Set the LCD I2C address
 
 void setup() {
@@ -207,8 +208,8 @@ void Modem_CtrlWrite(void){
   digitalWrite(RXTX, LOW);
   digitalWrite(SS_CTRL,LOW);
   SPI_SlaveTransmit(0x02);
-  SPI_SlaveTransmit(0x1B);
-  SPI_SlaveTransmit(0x51);
+  SPI_SlaveTransmit((uint8_t)(SLAVE2_HEADER>>8));
+  SPI_SlaveTransmit((uint8_t)SLAVE2_HEADER);
   SPI_SlaveTransmit(0xAF);
   SPI_SlaveTransmit(0x92);
   SPI_SlaveTransmit(0x17);
@@ -225,7 +226,7 @@ void Modem_CtrlRead()
 {
   char buf[32]; 
   uint64_t readBuffer = 0;
-  uint64_t control_reg = 0x021B51AF92170000;
+  uint64_t control_reg = 0x021B58AF92170000 ;
   // Drive REG_ATA and RXTX high to request control register data from ST7540 
   Serial.print("CtrlReg Check: ");
   digitalWrite(REG_DATA,HIGH);
@@ -282,16 +283,15 @@ void command_library(uint8_t command){
       lcd.setCursor(0,0);
       lcd.print("Command: 0xF1");
       lcd.setCursor(0,1);
-      lcd.print("OP: Play Music 1");
-      sing(1);
+      lcd.print("OP: Play Music on");
+      sing(2);
       break;
     case 0xF2:
       lcd.clear();
       lcd.setCursor(0,0);
       lcd.print("Command: 0xF2");
       lcd.setCursor(0,1);
-      lcd.print("OP: Play Music 2");
-      sing(2);
+      lcd.print("OP: Play Music off");
       break;
     default:
       break;

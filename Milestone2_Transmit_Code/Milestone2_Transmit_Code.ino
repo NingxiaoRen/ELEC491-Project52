@@ -17,7 +17,7 @@ uint8_t i = 0;
 volatile int light1_flag = 0;
 volatile int light2_flag = 0;
 const uint16_t SLAVE1_HEADER = 0x9B58;
-const uint16_t SLAVE2_HEADER = 0x1B51;
+const uint16_t SLAVE2_HEADER = 0x9118;
 volatile uint16_t pos_write = 0;
 volatile uint16_t pos_read = 0;
 volatile uint8_t check_pointer = 0;
@@ -75,16 +75,7 @@ void setup() {
 }
  
 void loop() {
-
-    //DataCorrection_Transmit(SLAVE1_HEADER, 0xFC);
-    //delay(300);
-    //DataCorrection_Transmit(SLAVE2_HEADER, 0xBE);
-    //delay(300);
-    //DataCorrection_Transmit(SLAVE1_HEADER, 0xFD);
-    //delay(300);
-    //DataCorrection_Transmit(SLAVE2_HEADER, 0xBF);
-    //delay(300);
-    buttonPress = digitalRead(SELECT);
+  buttonPress = digitalRead(SELECT);
   if(buttonPress == 0){
     delay(50);
     buttonPress = digitalRead(SELECT);
@@ -208,11 +199,11 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn LED ON  <<");
+    lcd.print("Turn ON  <<");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn LED OFF");
+    lcd.print("Turn OFF");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
@@ -222,11 +213,11 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn LED ON");
+    lcd.print("Turn ON");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn LED OFF <<");
+    lcd.print("Turn OFF <<");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
@@ -236,29 +227,29 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn LED ON");
+    lcd.print("Turn ON");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn LED OFF");
+    lcd.print("Turn OFF");
     lcd.setCursor(0,3);
     lcd.print("                    ");
-    lcd.setCursor(15,3);
+    lcd.setCursor(12,3);
     lcd.print(">> HOME");
     prt = 0;
   }
 
-  if (selection2 == 1 && prt == 1 && MENU == 2){
+  if (selection2 == 1 && prt == 1 && MENU == 2){ // Device 2
     lcd.setCursor(0,0);
     lcd.print("Device 2 Menu");
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Play Music 1 <<");
+    lcd.print("Turn ON <<");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Play Music 2 ");
+    lcd.print("Turn OFF ");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
@@ -268,28 +259,24 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Play Music 1");
+    lcd.print("Turn ON");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Play Music 2 <<");
+    lcd.print("Turn OFF <<");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
     lcd.print("HOME");
     prt = 0;
   }else if(selection2 == 3 && prt == 1 && MENU == 2){
-    lcd.setCursor(0,1);
-    lcd.print("                    ");
-    lcd.setCursor(0,1);
-    lcd.print("Play Music 1");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Play Music 2");
+    lcd.print("Turn OFF");
     lcd.setCursor(0,3);
     lcd.print("                    ");
-    lcd.setCursor(15,3);
+    lcd.setCursor(12,3);
     lcd.print(">> HOME");
     prt = 0;
   }

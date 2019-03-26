@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-//#include "buzzer.h"
+#include "buzzer.h"
 
 #define LED      2
 #define RXTX     15
@@ -41,7 +41,7 @@ void setup() {
   sei();    // turn on interrupts  
   delay(1000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(2,0);
   lcd.print("SKYNET IS ON");
   pos_read = 0;pos_write = 0; 
 }
@@ -82,7 +82,7 @@ void loop() {
           //Serial.println("Resend commands !!");
         }
         command_library(cmd); 
-        //flag = flag-2;
+        flag = flag-2;
        }
   }
 }
@@ -110,7 +110,7 @@ ISR (SPI_STC_vect){
 ISR (PCINT0_vect){
   //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
   //To continue we need to set the SS high
-  //flag++;
+  flag++;
   if(PINB & (1<<PB0)){//rising
     //Serial.println("CD_PD Rising");
     digitalWrite(SS_CTRL,HIGH);// Disable SPI
@@ -265,7 +265,8 @@ void command_library(uint8_t command){
       lcd.setCursor(0,0);
       lcd.print("Command: 0xFC");
       lcd.setCursor(0,1);
-      lcd.print("OP: LED ON");
+      lcd.print("OP: LED MUSIC ON");
+      sing(1);
       break;
     case 0xFD:
       digitalWrite(LED,LOW);
@@ -274,7 +275,7 @@ void command_library(uint8_t command){
       lcd.setCursor(0,0);
       lcd.print("Command: 0xFD");
       lcd.setCursor(0,1);
-      lcd.print("OP: LED OFF");
+      lcd.print("OP: LED MUSIC OFF");  
       break;
     /*case 0xF1:
       lcd.clear();
