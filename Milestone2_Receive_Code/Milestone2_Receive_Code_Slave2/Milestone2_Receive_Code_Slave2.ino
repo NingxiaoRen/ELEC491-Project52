@@ -2,6 +2,7 @@
 #include <LiquidCrystal_I2C.h>
 #include "buzzer.h"
 
+#define RELAY    7
 #define LED      2
 #define RXTX     15
 #define REG_DATA 16
@@ -28,11 +29,12 @@ const uint16_t SLAVE2_HEADER = 0x9118;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  // Set the LCD I2C address
 
 void setup() {
-  
-    pinMode(3, OUTPUT);//buzzer
+  pinMode(3, OUTPUT);//buzzer
   pinMode(13, OUTPUT);//led indicator when singing a note
   pinMode(LED, OUTPUT);
+  pinMode(RELAY, OUTPUT);
   digitalWrite(LED, LOW);
+  digitalWrite(RELAY, LOW);
   Serial.begin(115200);
   lcd.init();  //initialize the lcd
   lcd.backlight();  //open the backlight
@@ -49,7 +51,6 @@ void setup() {
 }
 
 void loop() {
-
   digitalWrite(REG_DATA, LOW);
   digitalWrite(RXTX, HIGH);
   if(pos_write != pos_read)
@@ -260,24 +261,6 @@ void Modem_CtrlRead()
 
 void command_library(uint8_t command){
   switch(command){
-    /*case 0xFC:
-      digitalWrite(LED,HIGH);
-      Serial.println("FC ON");
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("Command: 0xFC");
-      lcd.setCursor(0,1);
-      lcd.print("OP: LED ON");
-      break;
-    case 0xFD:
-      digitalWrite(LED,LOW);
-      Serial.println("FD OFF");
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("Command: 0xFD");
-      lcd.setCursor(0,1);
-      lcd.print("OP: LED OFF");
-      break;*/
     case 0xF1:
       lcd.clear();
       lcd.setCursor(0,0);
@@ -292,6 +275,22 @@ void command_library(uint8_t command){
       lcd.print("Command: 0xF2");
       lcd.setCursor(0,1);
       lcd.print("OP: Play Music off");
+      break;
+    case 0xF3:
+      digitalWrite(RELAY, HIGH);
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Command: 0xF3");
+      lcd.setCursor(0,1);
+      lcd.print("OP: Relay on");   
+      break;
+    case 0xF4:
+      digitalWrite(RELAY, LOW);
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Command: 0xF4");
+      lcd.setCursor(0,1);
+      lcd.print("OP: Relay off");
       break;
     default:
       break;

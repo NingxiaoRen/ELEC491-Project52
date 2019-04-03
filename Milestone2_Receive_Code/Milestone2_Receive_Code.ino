@@ -2,6 +2,7 @@
 #include <LiquidCrystal_I2C.h>
 #include "buzzer.h"
 
+#define RELAY    7
 #define LED      2
 #define RXTX     15
 #define REG_DATA 16
@@ -30,7 +31,9 @@ void setup() {
   pinMode(3, OUTPUT);//buzzer
   pinMode(13, OUTPUT);//led indicator when singing a note
   pinMode(LED, OUTPUT);
+  pinMode(RELAY, OUTPUT);
   digitalWrite(LED, LOW);
+  digitalWrite(RELAY, LOW);
   Serial.begin(115200);
   lcd.init();  //initialize the lcd
   lcd.backlight();  //open the backlight
@@ -260,6 +263,7 @@ void command_library(uint8_t command){
   switch(command){
     case 0xFC:
       digitalWrite(LED,HIGH);
+      digitalWrite(RELAY, HIGH);
       Serial.println("FC ON");
       lcd.clear();
       lcd.setCursor(0,0);
@@ -270,6 +274,7 @@ void command_library(uint8_t command){
       break;
     case 0xFD:
       digitalWrite(LED,LOW);
+      digitalWrite(RELAY, LOW);
       Serial.println("FD OFF");
       lcd.clear();
       lcd.setCursor(0,0);
@@ -277,22 +282,6 @@ void command_library(uint8_t command){
       lcd.setCursor(0,1);
       lcd.print("OP: LED MUSIC OFF");  
       break;
-    /*case 0xF1:
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("Command: 0xF1");
-      lcd.setCursor(0,1);
-      lcd.print("OP: Play Music 1");
-      sing(1);
-      break;
-    case 0xF2:
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("Command: 0xF2");
-      lcd.setCursor(0,1);
-      lcd.print("OP: Play Music 2");
-      sing(2);
-      break;*/
     default:
       break;
   }
