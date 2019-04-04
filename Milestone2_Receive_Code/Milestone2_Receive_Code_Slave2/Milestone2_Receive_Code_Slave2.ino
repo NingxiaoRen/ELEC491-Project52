@@ -227,7 +227,7 @@ void Modem_CtrlRead()
 {
   char buf[32]; 
   uint64_t readBuffer = 0;
-  uint64_t control_reg = 0x021B58AF92170000 ;
+  uint64_t control_reg = 0x029118AF92170000 ;
   // Drive REG_ATA and RXTX high to request control register data from ST7540 
   Serial.print("CtrlReg Check: ");
   digitalWrite(REG_DATA,HIGH);

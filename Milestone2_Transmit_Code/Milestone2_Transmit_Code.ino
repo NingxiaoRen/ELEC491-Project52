@@ -1,7 +1,6 @@
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h> 
-//#define BUTTON1  2
-//#define BUTTON2  3
+
 #define SS_CTRL  9
 #define RXTX     15
 #define REG_DATA 16
@@ -39,10 +38,6 @@ volatile int MENU = 0;
    CD_PD High: Not transfer;  LOW: Transfer
   *******************************************************************************/
 void setup() {
-//  pinMode(BUTTON1,INPUT);
-//  pinMode(BUTTON2,INPUT);
-//  attachInterrupt(0, pin_ISR1, RISING);
-//  attachInterrupt(1, pin_ISR2, RISING);
   Serial.begin(115200);
   SPI_SlaveInit();  
   digitalWrite(SS_CTRL,LOW);
@@ -69,9 +64,6 @@ void setup() {
   lcd.setCursor(0,3);
   lcd.print("Device 02");
   delay(1000);
-  /*PCICR |= (1 << PCIE0);     // set PCIE0 to enable PCMSK0 scan (PORTB)
-  PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change (pin pb1 (SW1 button))
-  sei();    // turn on interrupts*/
 }
  
 void loop() {
@@ -110,14 +102,22 @@ void loop() {
       break;
       case 2:
         if(selection2 == 1){
-          Serial.println("Play Music 1");
+          //Serial.println("Music ON");
           DataCorrection_Transmit(SLAVE2_HEADER, 0xF1);
         }
         else if(selection2 == 2){
-          Serial.println("Play Music 2");
+          //Serial.println("Music OFF");
           DataCorrection_Transmit(SLAVE2_HEADER, 0xF2);
         }
-        else if (selection2 == 3){
+        /*else if(selection2 == 3){
+          //Serial.println("Relay ON");
+          DataCorrection_Transmit(SLAVE2_HEADER, 0xF3);
+        }
+        else if(selection2 == 4){
+         // Serial.println("Relay OFF");
+          DataCorrection_Transmit(SLAVE2_HEADER, 0xF4);
+        }*/
+        else if (selection2 == 5){
           MENU = 0;
           lcd.clear();
           prt = 1;
@@ -160,7 +160,7 @@ void loop() {
           }
         break;
         case 2:
-          if (selection2 > 3){
+          if (selection2 > 5){
             selection2 = 1;
           }
         break;
@@ -245,11 +245,11 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn ON <<");
+    lcd.print("Music ON <<");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn OFF ");
+    lcd.print("Music OFF ");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
@@ -259,60 +259,58 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn ON");
+    lcd.print("Music ON");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn OFF <<");
+    lcd.print("Music OFF <<");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
     lcd.print("HOME");
     prt = 0;
-  }else if(selection2 == 3 && prt == 1 && MENU == 2){
+  }/*else if(selection2 == 3 && prt == 1 && MENU == 2){
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Music OFF");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn OFF");
+    lcd.print("Relay ON <<");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }
+  if(selection2 == 4 && prt == 1 && MENU == 2){
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Relay ON");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Relay OFF <<");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }
+  if(selection2 == 5 && prt == 1 && MENU == 2){
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Relay OFF");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(12,3);
     lcd.print(">> HOME");
     prt = 0;
-  }
+  }*/
 }
-
-/*******************************************************************************
-* Function Name  : ISR
-* Description    : Interrupt Service Routine for SPI transfer complete
-* Input          : SPI transfer complete
-* Output         : Print data in SPI buffer
-*******************************************************************************/
-/*ISR (SPI_STC_vect){
-  //byte c = SPDR;
-  spi_buffer[pos_write] = SPDR;
-  //Serial.println(spi_buffer[pos_write],HEX);
-  pos_write++;
-  if(pos_write>SIZE-1) pos_write = 0;
-} */
-
-/*******************************************************************************
-* Function Name  : ISR
-* Description    : Interrupt Service Routine for PCINT1/PB1/D9 changes (SS/PCINT2/PB2)
-* Input          : SPI transfer complete
-* Output         : Print data in SPI buffer
-*******************************************************************************/
-/*ISR (PCINT0_vect){
-  //To stop the interrupt we need to set SS/PB2 ?? PB1 ??  Low, which means that there is nothing in the line
-  //To continue we need to set the SS high
-  if(PINB & (1<<PB0)){//rising
-    //Serial.println("CD_PD Rising");
-    digitalWrite(SS_CTRL,HIGH);
-  }else{//falling
-    //Serial.println("CD_PD Falling");
-    digitalWrite(SS_CTRL,LOW);
-  }
-}*/
 
 /*******************************************************************************
 * Function Name  : SPI_SlaveInit
@@ -464,26 +462,3 @@ void Modem_CtrlRead()
   else
       Serial.println("  Fail !!!");
 }
-
-// Buttons
-//void pin_ISR1(){
-//  button1 = digitalRead(BUTTON1);
-//  if ((button1 == HIGH) & (light1_flag == 0)){
-//    DataCorrection_Transmit(0x10,0xAC);
-//    light1_flag = 1;
-//  }else{
-//    DataCorrection_Transmit(0x10,0xAD);
-//    light1_flag = 0;
-//  }
-//}
-//
-//void pin_ISR2(){
-//  button2 = digitalRead(BUTTON2);
-//  if ((button2 == HIGH) & (light2_flag == 0)){
-//    DataCorrection_Transmit(0x20,0xAC);
-//    light2_flag = 1;
-//  }else{
-//    DataCorrection_Transmit(0x20,0xAD);
-//    light2_flag = 0;
-//  }
-//}
