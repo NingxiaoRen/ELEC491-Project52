@@ -263,7 +263,6 @@ void command_library(uint8_t command){
   switch(command){
     case 0xFC:
       digitalWrite(LED,HIGH);
-      digitalWrite(RELAY, HIGH);
       Serial.println("FC ON");
       lcd.clear();
       lcd.setCursor(0,0);
@@ -274,13 +273,30 @@ void command_library(uint8_t command){
       break;
     case 0xFD:
       digitalWrite(LED,LOW);
-      digitalWrite(RELAY, LOW);
       Serial.println("FD OFF");
       lcd.clear();
       lcd.setCursor(0,0);
       lcd.print("Command: 0xFD");
       lcd.setCursor(0,1);
       lcd.print("OP: LED MUSIC OFF");  
+      break;
+    case 0xF8:
+      digitalWrite(RELAY, HIGH);
+      Serial.println("F8 OFF");
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Command: 0xF8");
+      lcd.setCursor(0,1);
+      lcd.print("OP: Relay ON");  
+      break;
+    case 0xF9:
+      digitalWrite(RELAY, LOW);
+      Serial.println("F9 OFF");
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Command: 0xF9");
+      lcd.setCursor(0,1);
+      lcd.print("OP: Relay OFF");  
       break;
     default:
       break;

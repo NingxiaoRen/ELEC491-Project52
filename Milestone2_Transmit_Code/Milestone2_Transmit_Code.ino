@@ -88,12 +88,18 @@ void loop() {
       break;
       case 1:
         if(selection1 == 1){
-          Serial.println("LED ON");
+          //Serial.println("LED ON");
           DataCorrection_Transmit(SLAVE1_HEADER, 0xFC);
         }else if(selection1 == 2){
-          Serial.println("LED OFF");
+          //Serial.println("LED OFF");
           DataCorrection_Transmit(SLAVE1_HEADER, 0xFD);
         }else if(selection1 == 3){
+          //Serial.println("LED OFF");
+          DataCorrection_Transmit(SLAVE1_HEADER, 0xF8);
+        }else if(selection1 == 4){
+          //Serial.println("LED OFF");
+          DataCorrection_Transmit(SLAVE1_HEADER, 0xF9);
+        }else if(selection1 == 5){
           MENU = 0;
           lcd.clear();
           prt = 1;
@@ -109,14 +115,14 @@ void loop() {
           //Serial.println("Music OFF");
           DataCorrection_Transmit(SLAVE2_HEADER, 0xF2);
         }
-        /*else if(selection2 == 3){
+        else if(selection2 == 3){
           //Serial.println("Relay ON");
           DataCorrection_Transmit(SLAVE2_HEADER, 0xF3);
         }
         else if(selection2 == 4){
          // Serial.println("Relay OFF");
           DataCorrection_Transmit(SLAVE2_HEADER, 0xF4);
-        }*/
+        }
         else if (selection2 == 5){
           MENU = 0;
           lcd.clear();
@@ -155,7 +161,7 @@ void loop() {
           }
         break;
         case 1:
-          if (selection1 > 3){
+          if (selection1 > 5){
             selection1 = 1;
           }
         break;
@@ -199,11 +205,11 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn ON  <<");
+    lcd.print("Music ON  <<");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn OFF");
+    lcd.print("Music OFF");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
@@ -213,11 +219,11 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn ON");
+    lcd.print("Music ON");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn OFF <<");
+    lcd.print("Music OFF <<");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(15,3);
@@ -227,11 +233,39 @@ void loop() {
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
-    lcd.print("Turn ON");
+    lcd.print("Music OFF");
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
-    lcd.print("Turn OFF");
+    lcd.print("Relay ON <<");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }else if(selection1 == 4 && prt == 1 && MENU == 1){
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Relay ON");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Relay OFF <<");
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(15,3);
+    lcd.print("HOME");
+    prt = 0;
+  }else if(selection1 == 5 && prt == 1 && MENU == 1){
+    lcd.setCursor(0,1);
+    lcd.print("                    ");
+    lcd.setCursor(0,1);
+    lcd.print("Relay ON");
+    lcd.setCursor(0,2);
+    lcd.print("                    ");
+    lcd.setCursor(0,2);
+    lcd.print("Relay OFF");
     lcd.setCursor(0,3);
     lcd.print("                    ");
     lcd.setCursor(12,3);
@@ -269,7 +303,7 @@ void loop() {
     lcd.setCursor(15,3);
     lcd.print("HOME");
     prt = 0;
-  }/*else if(selection2 == 3 && prt == 1 && MENU == 2){
+  }else if(selection2 == 3 && prt == 1 && MENU == 2){
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
@@ -283,8 +317,7 @@ void loop() {
     lcd.setCursor(15,3);
     lcd.print("HOME");
     prt = 0;
-  }
-  if(selection2 == 4 && prt == 1 && MENU == 2){
+  }else if(selection2 == 4 && prt == 1 && MENU == 2){
     lcd.setCursor(0,1);
     lcd.print("                    ");
     lcd.setCursor(0,1);
@@ -298,8 +331,7 @@ void loop() {
     lcd.setCursor(15,3);
     lcd.print("HOME");
     prt = 0;
-  }
-  if(selection2 == 5 && prt == 1 && MENU == 2){
+  }else if(selection2 == 5 && prt == 1 && MENU == 2){
     lcd.setCursor(0,2);
     lcd.print("                    ");
     lcd.setCursor(0,2);
@@ -309,7 +341,7 @@ void loop() {
     lcd.setCursor(12,3);
     lcd.print(">> HOME");
     prt = 0;
-  }*/
+  }
 }
 
 /*******************************************************************************
